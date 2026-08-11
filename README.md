@@ -47,10 +47,12 @@ To update an existing installation to the latest **DNS SERVER BRST** build:
 curl -s -S -L https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/update-debian.sh | sudo sh
 ```
 
-Or with `wget`:
+### <a href="#automated-uninstall-debian-based" id="automated-uninstall-debian-based" name="automated-uninstall-debian-based">Automated Uninstall (Debian / Ubuntu / Raspberry Pi OS)</a>
+
+To cleanly uninstall **DNS SERVER BRST** and restore system DNS settings:
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/update-debian.sh | sudo sh
+curl -s -S -L https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/uninstall-debian.sh | sudo sh
 ```
 
 ### <a href="#automated-install-linux-and-mac" id="automated-install-linux-and-mac" name="automated-install-linux-and-mac">General Automated install (Other Unix / MacOS)</a>
