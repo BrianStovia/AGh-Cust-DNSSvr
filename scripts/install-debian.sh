@@ -452,7 +452,7 @@ install_service() {
 
 # Set default values of configuration variables.
 channel='release'
-reinstall='0'
+reinstall='1'
 uninstall='0'
 verbose='0'
 cpu=''
