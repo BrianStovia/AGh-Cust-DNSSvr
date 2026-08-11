@@ -93,14 +93,7 @@ export const Form = (props: Props) => {
                         {intl.getMessage('login')}
                     </Button>
 
-                    <div class={styles.info}>
-                        <a
-                            href={HTML_PAGES.FORGOT_PASSWORD}
-                            class={cn(theme.link.link, theme.text.t2)}
-                        >
-                            {intl.getMessage('forgot_password')}
-                        </a>
-                    </div>
+                    {/* Forgot password link removed */}
                 </div>
             </div>
         </Form>
