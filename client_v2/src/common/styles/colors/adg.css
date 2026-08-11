@@ -1,37 +1,67 @@
 :root {
-    --product-primary-0: #f7fbf8;
-    --product-primary-10: #d9ecde;
-    --product-primary-20: #bedfc6;
-    --product-primary-30: #a2d0ad;
-    --product-primary-40: #84c193;
-    --product-primary-50: #67b279;
-    --product-primary-60: #5b9f6b;
-    --product-primary-70: #4e8c5d;
-    --product-primary-80: #42794f;
-    --product-primary-90: #366642;
-    --product-primary-100: #22482c;
-    --product-secondary-0: #f5edf5;
-    --product-secondary-10: #dec8e1;
-    --product-secondary-20: #ccaad1;
-    --product-secondary-30: #c096c7;
-    --product-secondary-40: #b586be;
-    --product-secondary-50: #a870b2;
-    --product-secondary-60: #9f61aa;
-    --product-secondary-70: #92549c;
-    --product-secondary-80: #804886;
-    --product-secondary-90: #6d3e72;
-    --product-secondary-100: #502d53;
-    --product-tertiary-0: #defdf2;
-    --product-tertiary-10: #ecedf6;
-    --product-tertiary-20: #d0d4ea;
-    --product-tertiary-30: #b6bbdd;
-    --product-tertiary-40: #9ba2d1;
-    --product-tertiary-50: #7884cb;
-    --product-tertiary-60: #6b76bd;
-    --product-tertiary-70: #5c67ae;
-    --product-tertiary-80: #525b97;
-    --product-tertiary-90: #424979;
-    --product-tertiary-100: #303659;
+    /* ── BRST Custom Brand Palette ── */
+    --brst-primary-0: #e8f4ff;
+    --brst-primary-10: #c0deff;
+    --brst-primary-20: #93c7ff;
+    --brst-primary-30: #60afff;
+    --brst-primary-40: #3498ff;
+    --brst-primary-50: #0d84f8;
+    --brst-primary-60: #0070e0;
+    --brst-primary-70: #005bc4;
+    --brst-primary-80: #0047a3;
+    --brst-primary-90: #003480;
+    --brst-primary-100: #001c50;
+
+    /* ── BRST Cyan Accent ── */
+    --brst-cyan-30: #80f0ff;
+    --brst-cyan-50: #00d4ef;
+    --brst-cyan-70: #00a8c4;
+
+    /* ── BRST Surface/Depth ── */
+    --brst-bg-deepest: #050d1a;
+    --brst-bg-deep: #0a1628;
+    --brst-bg-mid: #101f38;
+    --brst-bg-surface: #162844;
+    --brst-bg-elevated: #1e3558;
+    --brst-bg-card: #1a2f4a;
+
+    /* ── BRST Borders ── */
+    --brst-border-subtle: rgba(13, 132, 248, 0.12);
+    --brst-border-default: rgba(13, 132, 248, 0.25);
+    --brst-border-accent: rgba(0, 212, 239, 0.4);
+
+    /* ── BRST Glows ── */
+    --brst-glow-primary: 0 0 24px rgba(13, 132, 248, 0.3);
+    --brst-glow-cyan: 0 0 20px rgba(0, 212, 239, 0.25);
+    --brst-glow-sm: 0 0 12px rgba(13, 132, 248, 0.2);
+
+    /* ── Product primary remapped to BRST blue ── */
+    --product-primary-0: #e8f4ff;
+    --product-primary-10: #c0deff;
+    --product-primary-20: #93c7ff;
+    --product-primary-30: #60afff;
+    --product-primary-40: #3498ff;
+    --product-primary-50: #0d84f8;
+    --product-primary-60: #0070e0;
+    --product-primary-70: #005bc4;
+    --product-primary-80: #0047a3;
+    --product-primary-90: #003480;
+    --product-primary-100: #001c50;
+
+    /* ── Product secondary remapped to cyan ── */
+    --product-secondary-0: #e0fbff;
+    --product-secondary-10: #b0f5ff;
+    --product-secondary-20: #80f0ff;
+    --product-secondary-30: #4de8ff;
+    --product-secondary-40: #1ad8ff;
+    --product-secondary-50: #00d4ef;
+    --product-secondary-60: #00b8d4;
+    --product-secondary-70: #00a8c4;
+    --product-secondary-80: #0090aa;
+    --product-secondary-90: #007890;
+    --product-secondary-100: #004a5a;
+
+    /* ── Grays stay same ── */
     --gray-0: #ffffff;
     --gray-10: #f6f6f6;
     --gray-20: #e4e4e4;
@@ -43,6 +73,8 @@
     --gray-80: #3d3d3d;
     --gray-90: #1f1f1f;
     --gray-100: #0a0a0a;
+
+    /* ── Orange stays same ── */
     --orange-0: #fdf9f2;
     --orange-10: #f9ecd8;
     --orange-20: #eecb92;
@@ -54,6 +86,8 @@
     --orange-80: #a85f01;
     --orange-90: #985201;
     --orange-100: #503200;
+
+    /* ── Red stays same ── */
     --red-0: #fcece6;
     --red-10: #f6c2b1;
     --red-20: #f2a288;

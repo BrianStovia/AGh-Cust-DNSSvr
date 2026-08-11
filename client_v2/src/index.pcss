@@ -1,19 +1,26 @@
 @import './common/styles/vars.css';
+@import './common/styles/colors/adg.css';
 @import './common/styles/colors/light.css';
 @import './common/styles/colors/dark.css';
-@import './common/styles/colors/adg.css';
 @import './common/styles/fonts.css';
 
+/* ── Premium BRST Google Font import ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 :root {
-    --font-family-monospace: Monaco, Menlo, 'Ubuntu Mono', Consolas, source-code-pro, monospace;
+    --font-family-monospace: 'JetBrains Mono', Monaco, Menlo, 'Ubuntu Mono', Consolas, source-code-pro, monospace;
     --font-family-base:
-        Rubik, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        'Inter', Rubik, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 }
 
 *,
 *::after,
 *::before {
     box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 body {
@@ -26,6 +33,34 @@ body {
     background-color: var(--default-page-background);
     min-width: 320px;
     width: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* ── Scrollbar Styling ── */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(13, 132, 248, 0.2);
+    border-radius: 6px;
+
+    &:hover {
+        background: rgba(13, 132, 248, 0.4);
+    }
+}
+
+/* ── Firefox scrollbar ── */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(13, 132, 248, 0.2) transparent;
 }
 
 .block-scroll {
@@ -41,6 +76,7 @@ input,
 textarea,
 select {
     font-family: var(--font-family-base);
+    -webkit-font-smoothing: antialiased;
 }
 
 h1,
@@ -50,4 +86,34 @@ h4,
 h5,
 h6 {
     margin: 0;
+    letter-spacing: -0.02em;
+}
+
+/* ── Focus Ring Enhancement ── */
+:focus-visible {
+    outline: 2px solid rgba(13, 132, 248, 0.6);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ── Selection Color ── */
+::selection {
+    background: rgba(13, 132, 248, 0.25);
+    color: inherit;
+}
+
+/* ── Smooth transitions for theme switching ── */
+* {
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.15s ease;
+}
+
+/* Except animations — those shouldn't be slowed */
+*[class*='animation'],
+*[class*='animate'],
+*[class*='loader'],
+*[class*='spinner'] {
+    transition: none;
 }

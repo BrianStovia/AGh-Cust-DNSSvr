@@ -1,10 +1,13 @@
+/* ── BRST Sidebar: Deep navy with glassmorphism shimmer ── */
+
 .sidebarWrapper {
     display: block;
     min-width: 240px;
 
     @media (min-width: 1200px) {
         align-self: stretch;
-        background-color: var(--page-background-additional);
+        background: linear-gradient(160deg, var(--brst-bg-deepest, #050d1a) 0%, var(--brst-bg-deep, #0a1628) 100%);
+        border-right: 1px solid rgba(13, 132, 248, 0.12);
     }
 }
 
@@ -23,11 +26,25 @@
         padding: 16px 0;
         overflow-y: auto;
         z-index: 1;
-        background-color: var(--page-background-additional);
+        background: linear-gradient(160deg, #050d1a 0%, #0a1628 100%);
+        border-right: 1px solid rgba(13, 132, 248, 0.12);
     }
 
     &::-webkit-scrollbar {
-        display: none;
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: rgba(13, 132, 248, 0.2);
+        border-radius: 4px;
+
+        &:hover {
+            background: rgba(13, 132, 248, 0.4);
+        }
     }
 }
 
@@ -45,17 +62,26 @@
 
 .linkWrapper {
     display: flex;
-    padding: 12px 16px 32px;
+    padding: 16px 20px 28px;
+    border-bottom: 1px solid rgba(13, 132, 248, 0.1);
+    margin-bottom: 8px;
 }
 
 .link {
     text-decoration: none;
+    display: block;
+    width: 100%;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+        opacity: 0.85;
+    }
 }
 
 .logoCompany {
-    fill: var(--default-logo-color);
+    fill: var(--default-logo-color, #ffffff);
 }
 
 .logoProduct {
-    fill: var(--default-description-text);
+    fill: var(--brst-cyan-50, #00d4ef);
 }
