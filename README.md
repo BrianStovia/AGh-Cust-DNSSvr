@@ -11,39 +11,47 @@
 
 **DNS SERVER BRST** is a network-wide ad & tracking blocking DNS server customized for maximum performance on Debian-based operating systems (Debian, Ubuntu, Raspberry Pi OS, Pop!_OS, Linux Mint).
 
-It features:
-- **Custom Branding & Logo**: Integrated custom branding (`DNS SERVER BRST`) and modern custom SVG logo interface.
-- **Debian Kernel Optimizations**: Automatic tuning of network socket buffers (8MB UDP buffer), kernel `sysctl` backlog settings, and high-concurrency `systemd` resource limits.
-- **Fast Build Targets**: Architecture-specific compilation support (`GOAMD64=v3` and static `CGO_ENABLED=0` builds).
+### ✨ Key Features:
+- 🎨 **Custom Branding & SVG Logo**: Custom identity (`DNS SERVER BRST`) and modern vector logo interface.
+- ⚡ **Debian Kernel Performance Tuning**: Automatic socket buffer tuning (8MB UDP buffer), kernel `sysctl` backlog settings (`10,000`), and high-concurrency `systemd` resource limits (`LimitNOFILE=65536`, `LimitNPROC=512000`).
+- 🛠️ **Auto Install & Update**: One-command automated installation and seamless update scripts for Debian Linux.
+- 🚀 **Precompiled Custom Binaries**: Includes precompiled custom binaries for Linux `amd64` and `arm64`.
 
 - [Getting Started](#getting-started)
-    - [Automated install (Debian / Ubuntu / Raspberry Pi OS)](#automated-install-debian-based)
-    - [General Automated install](#automated-install-linux-and-mac)
-    - [Alternative methods](#alternative-methods)
-    - [API](#api)
-- [How to build from source](#how-to-build)
+    - [Automated Install (Debian / Ubuntu / Raspberry Pi OS)](#automated-install-debian-based)
+    - [Automated Update (Debian / Ubuntu / Raspberry Pi OS)](#automated-update-debian-based)
+    - [General Automated Install (Other Unix / MacOS)](#automated-install-linux-and-mac)
+- [How to Build from Source](#how-to-build)
 
 ## <a href="#getting-started" id="getting-started" name="getting-started">Getting Started</a>
 
-### <a href="#automated-install-debian-based" id="automated-install-debian-based" name="automated-install-debian-based">Automated install (Debian / Ubuntu / Raspberry Pi OS)</a>
+### <a href="#automated-install-debian-based" id="automated-install-debian-based" name="automated-install-debian-based">Automated Install (Debian / Ubuntu / Raspberry Pi OS)</a>
 
 To automatically install **DNS SERVER BRST** with kernel performance tuning on Debian-based Linux:
 
 ```sh
-curl -s -S -L https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/install-debian.sh | sh -s -- -v
+curl -s -S -L https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/install-debian.sh | sudo sh
 ```
 
 Or with `wget`:
 
 ```sh
-wget --no-verbose -O - https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/install-debian.sh | sh -s -- -v
+wget -qO- https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/install-debian.sh | sudo sh
 ```
 
-The script accepts standard flags:
-- `-c <channel>` to specify channel (`release`, `beta`, `edge`);
-- `-r` to reinstall;
-- `-u` to uninstall;
-- `-v` for verbose output.
+### <a href="#automated-update-debian-based" id="automated-update-debian-based" name="automated-update-debian-based">Automated Update (Debian / Ubuntu / Raspberry Pi OS)</a>
+
+To update an existing installation to the latest **DNS SERVER BRST** build:
+
+```sh
+curl -s -S -L https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/update-debian.sh | sudo sh
+```
+
+Or with `wget`:
+
+```sh
+wget -qO- https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/update-debian.sh | sudo sh
+```
 
 ### <a href="#automated-install-linux-and-mac" id="automated-install-linux-and-mac" name="automated-install-linux-and-mac">General Automated install (Other Unix / MacOS)</a>
 
