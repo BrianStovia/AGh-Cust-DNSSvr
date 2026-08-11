@@ -353,8 +353,13 @@ rerun_with_root() {
 	exit 0
 }
 
-# Function download downloads the file from the URL and saves it to the specified filepath.
+# Function download downloads the file from the URL or skips if local binary is found.
 download() {
+	if [ -f "./AdGuardHome" ] || [ -f "../AdGuardHome" ]; then
+		log "custom local binary detected, skipping remote download"
+		return 0
+	fi
+
 	log "downloading package from $url to $pkg_name"
 
 	if ! "$download_func" "$url" "$pkg_name"; then
@@ -364,14 +369,28 @@ download() {
 	log "successfully downloaded $pkg_name"
 }
 
-# Function unpack unpacks the passed archive depending on its extension.
+# Function unpack unpacks the passed archive or copies the custom local binary.
 unpack() {
-	log "unpacking package from $pkg_name into $out_dir"
-
 	# shellcheck disable=SC2174
 	if ! mkdir -m 0700 -p "$out_dir"; then
 		error_exit "cannot create directory $out_dir"
 	fi
+
+	if [ -f "./AdGuardHome" ]; then
+		log "copying custom binary ./AdGuardHome into $agh_dir"
+		mkdir -p "$agh_dir"
+		cp "./AdGuardHome" "$agh_dir/AdGuardHome"
+		chmod +x "$agh_dir/AdGuardHome"
+		return 0
+	elif [ -f "../AdGuardHome" ]; then
+		log "copying custom binary ../AdGuardHome into $agh_dir"
+		mkdir -p "$agh_dir"
+		cp "../AdGuardHome" "$agh_dir/AdGuardHome"
+		chmod +x "$agh_dir/AdGuardHome"
+		return 0
+	fi
+
+	log "unpacking package from $pkg_name into $out_dir"
 
 	case "$pkg_ext" in
 	'tar.gz')

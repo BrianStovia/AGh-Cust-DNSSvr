@@ -1,0 +1,13 @@
+# Executables
+*.exe
+AdGuardHome
+bin/
+
+# Node modules
+node_modules/
+client_v2/node_modules/
+client/node_modules/
+
+# OS metadata
+.DS_Store
+Thumbs.db

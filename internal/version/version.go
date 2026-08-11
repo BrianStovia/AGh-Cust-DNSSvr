@@ -41,7 +41,7 @@ func Channel() (v string) {
 }
 
 // vFmtFull defines the format of full version output.
-const vFmtFull = "AdGuard Home, version %s"
+const vFmtFull = "DNS SERVER BRST, version %s"
 
 // Full returns the full current version of AdGuard Home.
 func Full() (v string) {
@@ -97,7 +97,7 @@ func fmtModule(m *debug.Module) (formatted string) {
 
 // Constants defining the headers of build information message.
 const (
-	vFmtAGHHdr       = "AdGuard Home"
+	vFmtAGHHdr       = "DNS SERVER BRST"
 	vFmtVerHdr       = "Version: "
 	vFmtSchemaVerHdr = "Schema version: "
 	vFmtChanHdr      = "Channel: "
