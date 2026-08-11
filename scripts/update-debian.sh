@@ -60,23 +60,21 @@ elif [ -f "./AdGuardHome" ]; then
 	chmod +x "$INSTALL_DIR/AdGuardHome"
 	echo "${GREEN}[✓] Binary kustom lokal berhasil dipasang.${NC}"
 else
-	echo "${BLUE}Mengunduh paket biner rilis terbaru...${NC}"
+	echo "${BLUE}Mengunduh paket biner DNS SERVER BRST kustom terbaru dari GitHub...${NC}"
 	ARCH="$(uname -m)"
 	case "$ARCH" in
 	x86_64) ARCH_TYPE="amd64" ;;
 	aarch64 | arm64) ARCH_TYPE="arm64" ;;
-	armv7l | armv6l) ARCH_TYPE="armv7" ;;
 	*) ARCH_TYPE="amd64" ;;
 	esac
 
-	DOWNLOAD_URL="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_${ARCH_TYPE}.tar.gz"
-	TMP_TAR="/tmp/AdGuardHome_update.tar.gz"
-	curl -sSL "$DOWNLOAD_URL" -o "$TMP_TAR"
-	tar -zxf "$TMP_TAR" -C /tmp/
-	cp /tmp/AdGuardHome/AdGuardHome "$INSTALL_DIR/AdGuardHome"
+	DOWNLOAD_URL="https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_linux_${ARCH_TYPE}"
+	TMP_BIN="/tmp/AdGuardHome_custom_update"
+	curl -sSL "$DOWNLOAD_URL" -o "$TMP_BIN"
+	cp "$TMP_BIN" "$INSTALL_DIR/AdGuardHome"
 	chmod +x "$INSTALL_DIR/AdGuardHome"
-	rm -rf /tmp/AdGuardHome*
-	echo "${GREEN}[✓] Binary rilis terbaru berhasil dipasang.${NC}"
+	rm -f "$TMP_BIN"
+	echo "${GREEN}[✓] Binary kustom terbaru berhasil dipasang.${NC}"
 fi
 
 # 6. Re-apply Debian Kernel Performance Tuning

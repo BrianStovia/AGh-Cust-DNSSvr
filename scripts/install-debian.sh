@@ -295,8 +295,8 @@ configure() {
 	set_sudo_cmd
 	check_out_dir
 
-	pkg_name="AdGuardHome_${os}_${cpu}.${pkg_ext}"
-	url="https://static.adtidy.org/adguardhome/${channel}/${pkg_name}"
+	pkg_name="AdGuardHome_${os}_${cpu}"
+	url="https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/${pkg_name}"
 	agh_dir="${out_dir}/AdGuardHome"
 	readonly pkg_name url agh_dir
 
@@ -369,45 +369,34 @@ download() {
 	log "successfully downloaded $pkg_name"
 }
 
-# Function unpack unpacks the passed archive or copies the custom local binary.
+# Function unpack unpacks or copies the downloaded custom binary into destination.
 unpack() {
 	# shellcheck disable=SC2174
 	if ! mkdir -m 0700 -p "$out_dir"; then
 		error_exit "cannot create directory $out_dir"
 	fi
 
+	mkdir -p "$agh_dir"
+
 	if [ -f "./AdGuardHome" ]; then
 		log "copying custom binary ./AdGuardHome into $agh_dir"
-		mkdir -p "$agh_dir"
 		cp "./AdGuardHome" "$agh_dir/AdGuardHome"
 		chmod +x "$agh_dir/AdGuardHome"
 		return 0
 	elif [ -f "../AdGuardHome" ]; then
 		log "copying custom binary ../AdGuardHome into $agh_dir"
-		mkdir -p "$agh_dir"
 		cp "../AdGuardHome" "$agh_dir/AdGuardHome"
 		chmod +x "$agh_dir/AdGuardHome"
 		return 0
+	elif [ -f "$pkg_name" ]; then
+		log "installing downloaded custom binary $pkg_name into $agh_dir"
+		cp "$pkg_name" "$agh_dir/AdGuardHome"
+		chmod +x "$agh_dir/AdGuardHome"
+		rm -f "$pkg_name"
+		return 0
 	fi
 
-	log "unpacking package from $pkg_name into $out_dir"
-
-	case "$pkg_ext" in
-	'tar.gz')
-		tar -C "$out_dir" -f "$pkg_name" -x -z
-		;;
-	*)
-		error_exit "unexpected package extension: '$pkg_ext'"
-		;;
-	esac
-
-	unpacked_contents="$(
-		echo
-		ls -l -A "$agh_dir"
-	)"
-	log "successfully unpacked, contents: $unpacked_contents"
-
-	rm "$pkg_name"
+	error_exit "failed to locate or install custom binary"
 }
 
 # Function handle_existing detects existing installation and takes care of removing it if needed.
