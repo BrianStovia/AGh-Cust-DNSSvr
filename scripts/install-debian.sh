@@ -370,14 +370,7 @@ download() {
 	fi
 
 	if [ "$SUCCESS" -eq 0 ]; then
-		log "custom binary download unverified, downloading official release fallback..."
-		OFFICIAL_URL="https://static.adguard.com/adguardhome/release/AdGuardHome_${os}_${cpu}.tar.gz"
-		TMP_TAR="/tmp/AdGuardHome_install.tar.gz"
-		curl -sSL "$OFFICIAL_URL" -o "$TMP_TAR"
-		tar -zxf "$TMP_TAR" -C /tmp/
-		cp /tmp/AdGuardHome/AdGuardHome "./AdGuardHome"
-		chmod +x "./AdGuardHome"
-		rm -rf /tmp/AdGuardHome*
+		error_exit "cannot download custom DNS SERVER BRST binary from $url into $pkg_name"
 	fi
 
 	log "successfully prepared binary"
