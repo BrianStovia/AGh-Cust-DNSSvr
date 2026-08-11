@@ -1,0 +1,90 @@
+name: DNS SERVER BRST - Automated CI/CD Build & Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Multi-Architecture Binaries
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'client_v2/package-lock.json'
+
+      - name: Install Frontend Dependencies & Build Bundle
+        run: |
+          cd client_v2
+          npm ci
+          npm run build-prod
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Build Cross-Platform Binaries
+        run: |
+          mkdir -p dist
+          LDFLAGS="-s -w -X github.com/AdguardTeam/AdGuardHome/internal/version.version=${{ github.ref_name }}"
+
+          echo "Building Linux amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="$LDFLAGS" -o dist/AdGuardHome_linux_amd64 main.go
+
+          echo "Building Linux arm64..."
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="$LDFLAGS" -o dist/AdGuardHome_linux_arm64 main.go
+
+          echo "Building Linux armv7..."
+          GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0 go build -ldflags="$LDFLAGS" -o dist/AdGuardHome_linux_armv7 main.go
+
+          echo "Building Windows amd64..."
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="$LDFLAGS" -o dist/AdGuardHome_windows_amd64.exe main.go
+
+          echo "Building macOS amd64..."
+          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="$LDFLAGS" -o dist/AdGuardHome_darwin_amd64 main.go
+
+          echo "Building macOS arm64 (Apple Silicon)..."
+          GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="$LDFLAGS" -o dist/AdGuardHome_darwin_arm64 main.go
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dns-server-brst-binaries
+          path: dist/*
+
+      - name: Create & Update GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "DNS SERVER BRST ${{ github.ref_name }}"
+          body: |
+            ## 🚀 DNS SERVER BRST Rilis Terbaru
+
+            Daftar Biner Siap Pakai:
+            - **Linux 64-bit (x86_64 / amd64)**: `AdGuardHome_linux_amd64`
+            - **Linux ARM 64-bit (aarch64 / arm64)**: `AdGuardHome_linux_arm64`
+            - **Linux ARMv7 (Raspberry Pi 32-bit)**: `AdGuardHome_linux_armv7`
+            - **Windows 64-bit**: `AdGuardHome_windows_amd64.exe`
+            - **macOS Intel**: `AdGuardHome_darwin_amd64`
+            - **macOS Apple Silicon (M1/M2/M3)**: `AdGuardHome_darwin_arm64`
+
+            ### Cara Update Otomatis di Debian/Ubuntu:
+            ```bash
+            curl -s -S -L https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/update-debian.sh | sudo sh
+            ```
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
