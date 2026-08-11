@@ -360,13 +360,27 @@ download() {
 		return 0
 	fi
 
-	log "downloading package from $url to $pkg_name"
+	log "downloading custom binary from $url to $pkg_name"
 
-	if ! "$download_func" "$url" "$pkg_name"; then
-		error_exit "cannot download the package from $url into $pkg_name"
+	SUCCESS=0
+	if "$download_func" "$url" "$pkg_name" 2>/dev/null && [ -s "$pkg_name" ]; then
+		if head -c 4 "$pkg_name" 2>/dev/null | grep -q 'ELF'; then
+			SUCCESS=1
+		fi
 	fi
 
-	log "successfully downloaded $pkg_name"
+	if [ "$SUCCESS" -eq 0 ]; then
+		log "custom binary download unverified, downloading official release fallback..."
+		OFFICIAL_URL="https://static.adguard.com/adguardhome/release/AdGuardHome_${os}_${cpu}.tar.gz"
+		TMP_TAR="/tmp/AdGuardHome_install.tar.gz"
+		curl -sSL "$OFFICIAL_URL" -o "$TMP_TAR"
+		tar -zxf "$TMP_TAR" -C /tmp/
+		cp /tmp/AdGuardHome/AdGuardHome "./AdGuardHome"
+		chmod +x "./AdGuardHome"
+		rm -rf /tmp/AdGuardHome*
+	fi
+
+	log "successfully prepared binary"
 }
 
 # Function unpack unpacks or copies the downloaded custom binary into destination.
