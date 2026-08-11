@@ -345,7 +345,7 @@ rerun_with_root() {
 	if [ -f "$0" ]; then
 		$sudo_cmd sh "$0" -c "$channel" -C "$cpu" -O "$os" -o "$out_dir" "$r" "$u" "$v"
 	else
-		script_url='https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh'
+		script_url='https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/install-debian.sh'
 		{ "$download_func" "$script_url" || echo 'exit 1'; } \
 			| $sudo_cmd sh -s -- -c "$channel" -C "$cpu" -O "$os" -o "$out_dir" "$r" "$u" "$v"
 	fi
