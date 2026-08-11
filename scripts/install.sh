@@ -384,12 +384,12 @@ configure() {
 	set_sudo_cmd
 	check_out_dir
 
-	pkg_name="AdGuardHome_${os}_${cpu}.${pkg_ext}"
-	url="https://static.adtidy.org/adguardhome/${channel}/${pkg_name}"
+	pkg_name="AdGuardHome_${os}_${cpu}"
+	url="https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/${pkg_name}"
 	agh_dir="${out_dir}/AdGuardHome"
 	readonly pkg_name url agh_dir
 
-	log "AdGuard Home will be installed into $agh_dir"
+	log "DNS SERVER BRST / AdGuard Home will be installed into $agh_dir"
 }
 
 # Function is_root checks for root privileges to be granted.
@@ -402,12 +402,12 @@ is_root() {
 	fi
 
 	if is_command "$sudo_cmd"; then
-		log 'note that AdGuard Home requires root privileges to install using this script'
+		log 'note that DNS SERVER BRST requires root privileges to install using this script'
 
 		return 1
 	fi
 
-	error_exit 'root privileges are required to install AdGuard Home using this script
+	error_exit 'root privileges are required to install DNS SERVER BRST using this script
 please, restart it with root privileges'
 }
 
@@ -417,7 +417,7 @@ please, restart it with root privileges'
 #
 # TODO(e.burkov): Try to avoid restarting.
 rerun_with_root() {
-	script_url='https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh'
+	script_url='https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/install.sh'
 	readonly script_url
 
 	r='-R'
@@ -463,34 +463,34 @@ download() {
 	log "successfully downloaded $pkg_name"
 }
 
-# Function unpack unpacks the passed archive depending on it's extension.
+# Function unpack unpacks or copies the downloaded custom binary into destination.
 unpack() {
-	log "unpacking package from $pkg_name into $out_dir"
-
 	# shellcheck disable=SC2174
 	if ! mkdir -m 0700 -p "$out_dir"; then
 		error_exit "cannot create directory $out_dir"
 	fi
 
-	case "$pkg_ext" in
-	'zip')
-		unzip "$pkg_name" -d "$out_dir"
-		;;
-	'tar.gz')
-		tar -C "$out_dir" -f "$pkg_name" -x -z
-		;;
-	*)
-		error_exit "unexpected package extension: '$pkg_ext'"
-		;;
-	esac
+	mkdir -p "$agh_dir"
 
-	unpacked_contents="$(
-		echo
-		ls -l -A "$agh_dir"
-	)"
-	log "successfully unpacked, contents: $unpacked_contents"
+	if [ -f "./AdGuardHome" ]; then
+		log "copying custom binary ./AdGuardHome into $agh_dir"
+		cp "./AdGuardHome" "$agh_dir/AdGuardHome"
+		chmod +x "$agh_dir/AdGuardHome"
+		return 0
+	elif [ -f "../AdGuardHome" ]; then
+		log "copying custom binary ../AdGuardHome into $agh_dir"
+		cp "../AdGuardHome" "$agh_dir/AdGuardHome"
+		chmod +x "$agh_dir/AdGuardHome"
+		return 0
+	elif [ -f "$pkg_name" ]; then
+		log "installing downloaded custom binary $pkg_name into $agh_dir"
+		cp "$pkg_name" "$agh_dir/AdGuardHome"
+		chmod +x "$agh_dir/AdGuardHome"
+		rm -f "$pkg_name"
+		return 0
+	fi
 
-	rm "$pkg_name"
+	error_exit "failed to locate or install custom binary"
 }
 
 # Function handle_existing detects the existing AGH installation and takes care
