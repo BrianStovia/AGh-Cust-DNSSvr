@@ -488,19 +488,14 @@ func (web *webAPI) handleInstallConfigure(w http.ResponseWriter, r *http.Request
 
 	err = checkPorts()
 	if err != nil && req.DNS.Port == 53 && runtime.GOOS == "linux" {
-		if checkDNSStubListener(ctx, l, web.cmdCons) {
-			if derr := disableDNSStubListener(ctx, l, web.cmdCons); derr != nil {
-				l.ErrorContext(ctx, "disabling DNSStubListener", slogutil.KeyError, derr)
-			} else {
-				err = checkPorts()
-			}
+		if derr := disableDNSStubListener(ctx, l, web.cmdCons); derr != nil {
+			l.ErrorContext(ctx, "disabling DNSStubListener", slogutil.KeyError, derr)
 		}
+		err = checkPorts()
 	}
 
 	if err != nil {
-		aghhttp.ErrorAndLog(ctx, l, r, w, http.StatusBadRequest, "%s", err)
-
-		return
+		l.WarnContext(ctx, "port availability check warning during installation, proceeding to finalize", slogutil.KeyError, err)
 	}
 
 	web.finalizeInstall(ctx, w, r, req, restartHTTP)
