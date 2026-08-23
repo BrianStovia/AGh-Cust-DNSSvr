@@ -150,42 +150,54 @@ func (req *checkConfReq) validateDNS(
 	defer func() { err = errors.Annotate(err, "validating ports: %w") }()
 
 	port := req.DNS.Port
-	switch port {
-	case 0:
+	if port == 0 {
 		return false, nil
-	case config.HTTPConfig.Address.Port():
-		// Go on and only check the UDP port since the TCP one is already bound
-		// by AdGuard Home for web interface.
-	default:
-		// Check TCP as well.
+	}
+
+	checkTCP := port != config.HTTPConfig.Address.Port()
+	if checkTCP {
 		addPorts(tcpPorts, tcpPort(port))
 		if err = tcpPorts.Validate(); err != nil {
 			return false, err
 		}
+	}
 
-		err = aghnet.CheckPort("tcp", netip.AddrPortFrom(req.DNS.IP, port))
-		if err != nil {
-			return false, err
+	checkPorts := func() (tcpErr, udpErr error) {
+		if checkTCP {
+			tcpErr = aghnet.CheckPort("tcp", netip.AddrPortFrom(req.DNS.IP, port))
 		}
+		udpErr = aghnet.CheckPort("udp", netip.AddrPortFrom(req.DNS.IP, port))
+		return tcpErr, udpErr
 	}
 
-	err = aghnet.CheckPort("udp", netip.AddrPortFrom(req.DNS.IP, port))
-	if !aghnet.IsAddrInUse(err) {
-		return false, err
+	tcpErr, udpErr := checkPorts()
+	if tcpErr == nil && udpErr == nil {
+		return false, nil
 	}
 
-	// Try to fix automatically.
+	inUse := (tcpErr != nil && aghnet.IsAddrInUse(tcpErr)) || (udpErr != nil && aghnet.IsAddrInUse(udpErr))
+	if !inUse {
+		if tcpErr != nil {
+			return false, tcpErr
+		}
+		return false, udpErr
+	}
+
+	// Try to fix automatically if systemd-resolved is active on Linux.
 	canAutofix = checkDNSStubListener(ctx, l, cmdCons)
 	if canAutofix && req.DNS.Autofix {
 		if derr := disableDNSStubListener(ctx, l, cmdCons); derr != nil {
 			l.ErrorContext(ctx, "disabling DNSStubListener", slogutil.KeyError, derr)
 		}
 
-		err = aghnet.CheckPort("udp", netip.AddrPortFrom(req.DNS.IP, port))
+		tcpErr, udpErr = checkPorts()
 		canAutofix = false
 	}
 
-	return canAutofix, err
+	if tcpErr != nil {
+		return canAutofix, tcpErr
+	}
+	return canAutofix, udpErr
 }
 
 // handleInstallCheckConfig handles the /check_config endpoint.
@@ -457,26 +469,29 @@ func (web *webAPI) handleInstallConfigure(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = aghnet.CheckPort("udp", netip.AddrPortFrom(req.DNS.IP, req.DNS.Port))
-	if err != nil {
-		if req.DNS.Port == 53 && runtime.GOOS == "linux" {
-			if checkDNSStubListener(ctx, l, web.cmdCons) {
-				if derr := disableDNSStubListener(ctx, l, web.cmdCons); derr != nil {
-					l.ErrorContext(ctx, "disabling DNSStubListener", slogutil.KeyError, derr)
-				} else {
-					err = aghnet.CheckPort("udp", netip.AddrPortFrom(req.DNS.IP, req.DNS.Port))
-				}
+	checkPorts := func() error {
+		if checkErr := aghnet.CheckPort("udp", netip.AddrPortFrom(req.DNS.IP, req.DNS.Port)); checkErr != nil {
+			return checkErr
+		}
+		if req.DNS.Port != req.Web.Port {
+			if checkErr := aghnet.CheckPort("tcp", netip.AddrPortFrom(req.DNS.IP, req.DNS.Port)); checkErr != nil {
+				return checkErr
 			}
 		}
+		return nil
+	}
 
-		if err != nil {
-			aghhttp.ErrorAndLog(ctx, l, r, w, http.StatusBadRequest, "%s", err)
-
-			return
+	err = checkPorts()
+	if err != nil && req.DNS.Port == 53 && runtime.GOOS == "linux" {
+		if checkDNSStubListener(ctx, l, web.cmdCons) {
+			if derr := disableDNSStubListener(ctx, l, web.cmdCons); derr != nil {
+				l.ErrorContext(ctx, "disabling DNSStubListener", slogutil.KeyError, derr)
+			} else {
+				err = checkPorts()
+			}
 		}
 	}
 
-	err = aghnet.CheckPort("tcp", netip.AddrPortFrom(req.DNS.IP, req.DNS.Port))
 	if err != nil {
 		aghhttp.ErrorAndLog(ctx, l, r, w, http.StatusBadRequest, "%s", err)
 
