@@ -284,7 +284,7 @@ func handleStaticIP(
 	return ipResp
 }
 
-// checkDNSStubListener returns true if DNSStubListener is active.  l and
+// checkDNSStubListener returns true if systemd-resolved is active.  l and
 // cmdCons must not be nil.
 func checkDNSStubListener(
 	ctx context.Context,
@@ -296,7 +296,7 @@ func checkDNSStubListener(
 	}
 
 	const cmd = "systemctl"
-	args := []string{"is-enabled", "systemd-resolved"}
+	args := []string{"is-active", "--quiet", "systemd-resolved"}
 
 	l.DebugContext(ctx, "executing", "cmd", cmd, "args", args)
 
@@ -308,7 +308,7 @@ func checkDNSStubListener(
 		args...,
 	)
 	if err != nil {
-		l.InfoContext(ctx, "execution failed", "cmd", cmd, slogutil.KeyError, err)
+		l.InfoContext(ctx, "systemd-resolved is not active", slogutil.KeyError, err)
 
 		return false
 	}
@@ -343,29 +343,34 @@ func disableDNSStubListener(
 		return fmt.Errorf("os.WriteFile: %s: %w", resolvedConfPath, err)
 	}
 
-	_ = os.Rename(resolvConfPath, resolvConfPath+".backup")
-	err = os.Symlink("/run/systemd/resolve/resolv.conf", resolvConfPath)
-	if err != nil {
-		_ = os.Remove(resolvedConfPath) // remove the file we've just created
-		return fmt.Errorf("os.Symlink: %s: %w", resolvConfPath, err)
+	if _, statErr := os.Stat("/run/systemd/resolve/resolv.conf"); statErr == nil {
+		_ = os.Rename(resolvConfPath, resolvConfPath+".backup")
+		_ = os.Symlink("/run/systemd/resolve/resolv.conf", resolvConfPath)
 	}
 
 	const systemctlCmd = "systemctl"
+
+	// Unmask if it was masked
+	_ = executil.RunWithPeek(
+		ctx,
+		cmdCons,
+		aghos.MaxCmdOutputSize,
+		systemctlCmd,
+		"unmask",
+		"systemd-resolved",
+	)
 
 	systemctlArgs := []string{"reload-or-restart", "systemd-resolved"}
 
 	l.DebugContext(ctx, "executing", "cmd", systemctlCmd, "args", systemctlArgs)
 
-	err = executil.RunWithPeek(
+	_ = executil.RunWithPeek(
 		ctx,
 		cmdCons,
 		aghos.MaxCmdOutputSize,
 		systemctlCmd,
 		systemctlArgs...,
 	)
-	if err != nil {
-		return fmt.Errorf("executing cmd: %w", err)
-	}
 
 	return nil
 }
