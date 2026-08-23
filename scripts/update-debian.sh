@@ -99,6 +99,20 @@ if command -v sysctl >/dev/null 2>&1; then
 	sysctl -p "$SYSCTL_CONF" >/dev/null 2>&1 || sysctl --system >/dev/null 2>&1
 fi
 
+# Ensure systemd-resolved does not block port 53
+if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled systemd-resolved >/dev/null 2>&1; then
+	mkdir -p /etc/systemd/resolved.conf.d
+	cat << 'EOF' > /etc/systemd/resolved.conf.d/adguardhome.conf
+[Resolve]
+DNS=127.0.0.1
+DNSStubListener=no
+EOF
+	if [ -f /run/systemd/resolve/resolv.conf ]; then
+		ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+	fi
+	systemctl restart systemd-resolved 2>/dev/null || true
+fi
+
 # 7. Restart Service
 echo "${BLUE}[5/5] Memulai kembali service DNS SERVER BRST...${NC}"
 if command -v systemctl >/dev/null 2>&1; then

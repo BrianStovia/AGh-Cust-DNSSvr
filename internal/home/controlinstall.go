@@ -20,7 +20,6 @@ import (
 	"github.com/AdguardTeam/AdGuardHome/internal/aghnet"
 	"github.com/AdguardTeam/AdGuardHome/internal/aghos"
 	"github.com/AdguardTeam/AdGuardHome/internal/version"
-	"github.com/AdguardTeam/golibs/container"
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/logutil/slogutil"
 	"github.com/AdguardTeam/golibs/osutil/executil"
@@ -284,29 +283,22 @@ func checkDNSStubListener(
 		return false
 	}
 
-	cmds := container.KeyValues[string, []string]{{
-		Key:   "systemctl",
-		Value: []string{"is-enabled", "systemd-resolved"},
-	}, {
-		Key:   "grep",
-		Value: []string{"-E", "#?DNSStubListener=yes", "/etc/systemd/resolved.conf"},
-	}}
+	const cmd = "systemctl"
+	args := []string{"is-enabled", "systemd-resolved"}
 
-	for _, cmd := range cmds {
-		l.DebugContext(ctx, "executing", "cmd", cmd.Key, "args", cmd.Value)
+	l.DebugContext(ctx, "executing", "cmd", cmd, "args", args)
 
-		err := executil.RunWithPeek(
-			ctx,
-			cmdCons,
-			aghos.MaxCmdOutputSize,
-			cmd.Key,
-			cmd.Value...,
-		)
-		if err != nil {
-			l.InfoContext(ctx, "execution failed", "cmd", cmd.Key, slogutil.KeyError, err)
+	err := executil.RunWithPeek(
+		ctx,
+		cmdCons,
+		aghos.MaxCmdOutputSize,
+		cmd,
+		args...,
+	)
+	if err != nil {
+		l.InfoContext(ctx, "execution failed", "cmd", cmd, slogutil.KeyError, err)
 
-			return false
-		}
+		return false
 	}
 
 	return true
@@ -467,9 +459,21 @@ func (web *webAPI) handleInstallConfigure(w http.ResponseWriter, r *http.Request
 
 	err = aghnet.CheckPort("udp", netip.AddrPortFrom(req.DNS.IP, req.DNS.Port))
 	if err != nil {
-		aghhttp.ErrorAndLog(ctx, l, r, w, http.StatusBadRequest, "%s", err)
+		if req.DNS.Port == 53 && runtime.GOOS == "linux" {
+			if checkDNSStubListener(ctx, l, web.cmdCons) {
+				if derr := disableDNSStubListener(ctx, l, web.cmdCons); derr != nil {
+					l.ErrorContext(ctx, "disabling DNSStubListener", slogutil.KeyError, derr)
+				} else {
+					err = aghnet.CheckPort("udp", netip.AddrPortFrom(req.DNS.IP, req.DNS.Port))
+				}
+			}
+		}
 
-		return
+		if err != nil {
+			aghhttp.ErrorAndLog(ctx, l, r, w, http.StatusBadRequest, "%s", err)
+
+			return
+		}
 	}
 
 	err = aghnet.CheckPort("tcp", netip.AddrPortFrom(req.DNS.IP, req.DNS.Port))

@@ -261,6 +261,23 @@ set_sudo_cmd() {
 	sudo_cmd='sudo'
 }
 
+# Function disable_systemd_resolved_stub frees port 53 if systemd-resolved is active on Debian/Ubuntu.
+disable_systemd_resolved_stub() {
+	if is_command 'systemctl' && systemctl is-enabled systemd-resolved >/dev/null 2>&1; then
+		log 'disabling systemd-resolved DNSStubListener to release port 53'
+		maybe_sudo mkdir -p /etc/systemd/resolved.conf.d
+		maybe_sudo sh -c "cat << 'EOF' > /etc/systemd/resolved.conf.d/adguardhome.conf
+[Resolve]
+DNS=127.0.0.1
+DNSStubListener=no
+EOF"
+		if [ -f /run/systemd/resolve/resolv.conf ]; then
+			maybe_sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+		fi
+		maybe_sudo systemctl restart systemd-resolved >/dev/null 2>&1 || true
+	fi
+}
+
 # Function apply_debian_optimizations tunes kernel sysctl parameters for Debian hosts.
 apply_debian_optimizations() {
 	log 'applying Debian network sysctl performance optimizations'
@@ -284,6 +301,8 @@ EOF"
 	if is_command 'sysctl'; then
 		maybe_sudo sysctl -p "$sysctl_conf" >/dev/null 2>&1 || maybe_sudo sysctl --system >/dev/null 2>&1
 	fi
+
+	disable_systemd_resolved_stub
 }
 
 # Function configure sets the script's configuration.

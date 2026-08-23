@@ -48,12 +48,20 @@ EOF
 
 echo "Written configuration to $SYSCTL_CONF"
 
-# Apply sysctl settings immediately
-if command -v sysctl >/dev/null 2>&1; then
-	sysctl -p "$SYSCTL_CONF" || sysctl --system
-	echo "Kernel parameters successfully applied."
-else
-	echo "Warning: sysctl command not found. Please reboot to apply changes."
+# Disable systemd-resolved stub listener if active to release port 53
+if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled systemd-resolved >/dev/null 2>&1; then
+	echo "Releasing port 53 by disabling systemd-resolved DNSStubListener..."
+	mkdir -p /etc/systemd/resolved.conf.d
+	cat << 'EOF' > /etc/systemd/resolved.conf.d/adguardhome.conf
+[Resolve]
+DNS=127.0.0.1
+DNSStubListener=no
+EOF
+	if [ -f /run/systemd/resolve/resolv.conf ]; then
+		ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+	fi
+	systemctl restart systemd-resolved 2>/dev/null || true
+	echo "systemd-resolved stub disabled and port 53 released."
 fi
 
 echo "Debian network optimizations for AdGuard Home complete!"
