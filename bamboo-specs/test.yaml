@@ -9,7 +9,7 @@
     # flaky test suite.
     'cacheBuster': '0'
     'channel': 'development'
-    'clientDir': 'client_v2'
+    'clientDir': 'client'
     'dockerFrontend': 'adguard/home-js-builder:4.0'
     'dockerGo': 'adguard/go-builder:1.26.5--1'
 

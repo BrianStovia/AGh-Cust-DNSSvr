@@ -1,22 +1,22 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no"/><meta name="google" content="notranslate"/><meta http-equiv="x-dns-prefetch-control" content="off"/><meta name="mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="default"/><link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/><link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/><link rel="icon" type="image/x-icon" href="assets/favicon.ico"/><title>DNS SERVER BRST</title><meta name="color-scheme" content="light dark"/><script>(function () {
-                var THEME_KEY = 'account_theme';
-                var theme = null;
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name="google" content="notranslate"><meta http-equiv="x-dns-prefetch-control" content="off"><meta name="mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon-180x180.png"/><link rel="mask-icon" href="assets/safari-pinned-tab.svg" color="#67B279"><link rel="icon" type="image/png" href="assets/favicon.png" sizes="48x48"><title>DNS SERVER BRST</title><style>.wrapper {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+            }
+
+            [data-theme="DARK"] .wrapper {
+                background-color: #f5f7fb;
+            }</style><script defer="defer" src="main.67c5e401e69590a76188.js"></script><link href="main.e6587b971f9bb8329147.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"><div class="wrapper"></div></div><script>(function() {
+                var LOCAL_STORAGE_THEME_KEY = 'account_theme';
+                var theme = 'light';
+
                 try {
-                    var raw = window.localStorage.getItem(THEME_KEY);
-                    if (raw) {
-                        try {
-                            theme = JSON.parse(raw);
-                        } catch (e) {
-                            theme = raw;
-                        }
-                    }
-                } catch (e) {}
-                if (!theme || theme === 'auto') {
-                    var prefersDark =
-                        window.matchMedia &&
-                        window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    theme = prefersDark ? 'dark' : 'light';
+                    theme = window.localStorage.getItem(LOCAL_STORAGE_THEME_KEY);
+                } catch(e) {
+                    console.error(e);
                 }
-                document.documentElement.dataset.theme = theme;
-                document.documentElement.style.colorScheme = theme;
-            })();</script><script defer="defer" src="main.12e0de705ef0d1142162.js"></script><link href="main.286876cd30a884c30cbe.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>
+
+                document.body.dataset.theme = theme;
+            })();</script></body></html>
