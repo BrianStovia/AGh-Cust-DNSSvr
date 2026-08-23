@@ -125,6 +125,18 @@ EOF
 	done
 fi
 
+# Ensure AdGuardHome can coexist with Hotspot if 10.42.0.1 is active and AdGuardHome.yaml has 0.0.0.0
+if [ -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
+	if ip addr show 2>/dev/null | grep -q '10.42.0.1' || (command -v ss >/dev/null 2>&1 && ss -tulpn 2>/dev/null | grep -q '10.42.0.1:53'); then
+		MAIN_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo '')"
+		if [ "$MAIN_IP" != '' ] && [ "$MAIN_IP" != '10.42.0.1' ]; then
+			if grep -q -- "- 0.0.0.0" "$INSTALL_DIR/AdGuardHome.yaml"; then
+				sed -i "/- 0.0.0.0/c\    - 127.0.0.1\n    - ${MAIN_IP}" "$INSTALL_DIR/AdGuardHome.yaml"
+			fi
+		fi
+	fi
+fi
+
 # 7. Restart Service
 echo "${BLUE}[5/5] Memulai kembali service DNS SERVER BRST...${NC}"
 if command -v systemctl >/dev/null 2>&1; then
