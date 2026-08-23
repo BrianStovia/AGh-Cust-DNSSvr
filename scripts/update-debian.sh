@@ -99,18 +99,30 @@ if command -v sysctl >/dev/null 2>&1; then
 	sysctl -p "$SYSCTL_CONF" >/dev/null 2>&1 || sysctl --system >/dev/null 2>&1
 fi
 
-# Ensure systemd-resolved does not block port 53
-if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled systemd-resolved >/dev/null 2>&1; then
-	mkdir -p /etc/systemd/resolved.conf.d
-	cat << 'EOF' > /etc/systemd/resolved.conf.d/adguardhome.conf
+# Ensure systemd-resolved and other DNS daemons do not block port 53
+if command -v systemctl >/dev/null 2>&1; then
+	if systemctl is-active --quiet systemd-resolved 2>/dev/null || systemctl is-enabled systemd-resolved >/dev/null 2>&1; then
+		mkdir -p /etc/systemd/resolved.conf.d
+		cat << 'EOF' > /etc/systemd/resolved.conf.d/adguardhome.conf
 [Resolve]
 DNS=127.0.0.1
 DNSStubListener=no
 EOF
-	if [ -f /run/systemd/resolve/resolv.conf ]; then
-		ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+		if [ -f /etc/systemd/resolved.conf ]; then
+			sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf 2>/dev/null || true
+		fi
+		systemctl restart systemd-resolved 2>/dev/null || true
+		if [ -f /run/systemd/resolve/resolv.conf ]; then
+			ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+		fi
 	fi
-	systemctl restart systemd-resolved 2>/dev/null || true
+
+	for conflict_svc in dnsmasq bind9 named unbound; do
+		if systemctl is-active --quiet "$conflict_svc" 2>/dev/null; then
+			systemctl stop "$conflict_svc" 2>/dev/null || true
+			systemctl disable "$conflict_svc" 2>/dev/null || true
+		fi
+	done
 fi
 
 # 7. Restart Service

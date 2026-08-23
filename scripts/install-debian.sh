@@ -261,20 +261,34 @@ set_sudo_cmd() {
 	sudo_cmd='sudo'
 }
 
-# Function disable_systemd_resolved_stub frees port 53 if systemd-resolved is active on Debian/Ubuntu.
+# Function disable_systemd_resolved_stub frees port 53 from systemd-resolved, dnsmasq, bind9, or other DNS services.
 disable_systemd_resolved_stub() {
-	if is_command 'systemctl' && systemctl is-enabled systemd-resolved >/dev/null 2>&1; then
-		log 'disabling systemd-resolved DNSStubListener to release port 53'
-		maybe_sudo mkdir -p /etc/systemd/resolved.conf.d
-		maybe_sudo sh -c "cat << 'EOF' > /etc/systemd/resolved.conf.d/adguardhome.conf
+	if is_command 'systemctl'; then
+		if systemctl is-active --quiet systemd-resolved 2>/dev/null || systemctl is-enabled systemd-resolved >/dev/null 2>&1; then
+			log 'disabling systemd-resolved DNSStubListener to release port 53'
+			maybe_sudo mkdir -p /etc/systemd/resolved.conf.d
+			maybe_sudo sh -c "cat << 'EOF' > /etc/systemd/resolved.conf.d/adguardhome.conf
 [Resolve]
 DNS=127.0.0.1
 DNSStubListener=no
 EOF"
-		if [ -f /run/systemd/resolve/resolv.conf ]; then
-			maybe_sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+			if [ -f /etc/systemd/resolved.conf ]; then
+				maybe_sudo sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf 2>/dev/null || true
+			fi
+			maybe_sudo systemctl restart systemd-resolved >/dev/null 2>&1 || true
+			if [ -f /run/systemd/resolve/resolv.conf ]; then
+				maybe_sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+			fi
 		fi
-		maybe_sudo systemctl restart systemd-resolved >/dev/null 2>&1 || true
+
+		# Stop and disable other conflicting DNS daemons that might occupy port 53
+		for conflict_svc in dnsmasq bind9 named unbound; do
+			if systemctl is-active --quiet "$conflict_svc" 2>/dev/null; then
+				log "stopping conflicting DNS service $conflict_svc"
+				maybe_sudo systemctl stop "$conflict_svc" >/dev/null 2>&1 || true
+				maybe_sudo systemctl disable "$conflict_svc" >/dev/null 2>&1 || true
+			fi
+		done
 	fi
 }
 
