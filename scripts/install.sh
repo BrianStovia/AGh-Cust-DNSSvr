@@ -37,7 +37,7 @@ usage() {
 #
 # TODO(e.burkov):  Use everywhere the sudo_cmd isn't quoted.
 maybe_sudo() {
-	if [ "$use_sudo" -eq 0 ]; then
+	if [ "${use_sudo:-0}" -eq 0 ]; then
 		"$@"
 	else
 		"$sudo_cmd" "$@"
@@ -584,6 +584,7 @@ out_dir='/opt'
 pkg_ext='tar.gz'
 download_func='download_curl'
 sudo_cmd='sudo'
+use_sudo='0'
 
 parse_opts "$@"
 

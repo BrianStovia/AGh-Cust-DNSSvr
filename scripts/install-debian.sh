@@ -32,7 +32,7 @@ usage() {
 
 # Function maybe_sudo runs passed command with root privileges if use_sudo isn't equal to 0.
 maybe_sudo() {
-	if [ "$use_sudo" -eq 0 ]; then
+	if [ "${use_sudo:-0}" -eq 0 ]; then
 		"$@"
 	else
 		"$sudo_cmd" "$@"
@@ -468,17 +468,19 @@ out_dir='/opt'
 pkg_ext='tar.gz'
 download_func='download_curl'
 sudo_cmd='sudo'
+use_sudo='0'
 
 parse_opts "$@"
 
 echo 'starting DNS SERVER BRST installation script'
 
 configure
-check_required
 
 if ! is_root; then
 	rerun_with_root
 fi
+
+check_required
 
 handle_existing
 apply_debian_optimizations
