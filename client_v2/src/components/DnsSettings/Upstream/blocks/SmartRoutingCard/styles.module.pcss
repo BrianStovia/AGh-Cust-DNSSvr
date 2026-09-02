@@ -6,6 +6,10 @@
     margin-top: 24px;
     margin-bottom: 24px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .cardHeader {
@@ -55,6 +59,8 @@
     grid-template-columns: 1fr;
     gap: 14px;
     margin-bottom: 24px;
+    width: 100%;
+    box-sizing: border-box;
 
     @media (min-width: 768px) {
         grid-template-columns: repeat(3, 1fr);
@@ -65,11 +71,14 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    min-height: 200px;
     padding: 16px;
     background: var(--default-input-background, #f0f6ff);
     border: 1px solid var(--default-inactive-input-stroke, #b0ccee);
     border-radius: 12px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .presetCardActive {
@@ -95,7 +104,8 @@
     font-size: 14px;
     font-weight: 700;
     color: var(--default-main-text, #0d1f38);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    line-height: 1.3;
 }
 
 .presetDesc {
@@ -107,19 +117,38 @@
 
 .presetFooter {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 4px;
     padding-top: 10px;
     border-top: 1px solid var(--default-item-divider, rgba(255, 255, 255, 0.08));
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.presetTargetRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.presetTargetLabel {
+    font-size: 11px;
+    color: var(--default-description-text, #2a5080);
+    white-space: nowrap;
 }
 
 .presetTarget {
     font-size: 11px;
     font-family: monospace;
     color: var(--brst-cyan-50, #00d4ef);
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.25);
     padding: 2px 6px;
     border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 /* ── Custom Domain Route Form ── */
@@ -129,13 +158,15 @@
     border-radius: 12px;
     padding: 18px;
     margin-bottom: 24px;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .customTitle {
     font-size: 14px;
     font-weight: 700;
     color: var(--default-main-text, #0d1f38);
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -145,13 +176,30 @@
     display: grid;
     grid-template-columns: 1fr;
     gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
 
-    @media (min-width: 768px) {
-        grid-template-columns: 1fr 1fr auto;
+    @media (min-width: 640px) {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 }
 
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.inputLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--default-main-text, #0d1f38);
+}
+
 .inputField {
+    width: 100%;
+    box-sizing: border-box;
     background: var(--default-cards-background, #ffffff);
     border: 1px solid var(--default-inactive-input-stroke, #b0ccee);
     border-radius: 8px;
@@ -159,6 +207,7 @@
     font-size: 13px;
     color: var(--default-main-text, #0d1f38);
     outline: none;
+    min-width: 0;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     &:focus {
@@ -167,11 +216,28 @@
     }
 }
 
+.submitBtnRow {
+    margin-top: 14px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.submitBtn {
+    min-width: 0 !important;
+    width: auto !important;
+    height: 42px !important;
+    padding: 0 24px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+}
+
 /* ── Active Rules List ── */
 .rulesList {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .ruleItem {
@@ -184,6 +250,8 @@
     border-radius: 8px;
     gap: 12px;
     flex-wrap: wrap;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .ruleLeft {
@@ -243,7 +311,7 @@
     border: 1px solid rgba(239, 68, 68, 0.3);
     color: #ef4444;
     border-radius: 6px;
-    padding: 6px 10px;
+    padding: 6px 12px;
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;

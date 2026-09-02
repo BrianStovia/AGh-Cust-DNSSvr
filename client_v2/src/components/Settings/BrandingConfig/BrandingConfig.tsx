@@ -181,10 +181,10 @@ export const BrandingConfig = () => {
 
             {/* ── Action Buttons ── */}
             <div class={s.actionRow}>
-                <Button variant="primary" size="medium" onClick={handleSave}>
+                <Button variant="primary" size="medium" class={s.saveBtn} onClick={handleSave}>
                     Simpan Perubahan
                 </Button>
-                <Button variant="secondary" size="medium" onClick={handleReset}>
+                <Button variant="secondary" size="medium" class={s.resetBtn} onClick={handleReset}>
                     Kembalikan ke Default
                 </Button>
             </div>

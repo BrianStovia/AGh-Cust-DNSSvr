@@ -113,10 +113,12 @@ export const SmartRoutingCard = () => {
                                     <div class={s.presetDesc}>{preset.description}</div>
                                 </div>
                                 <div class={s.presetFooter}>
-                                    <span style={{ 'font-size': '11px', color: 'var(--default-description-text)' }}>
-                                        Target Upstream:
-                                    </span>
-                                    <span class={s.presetTarget}>{preset.defaultUpstream}</span>
+                                    <div class={s.presetTargetRow}>
+                                        <span class={s.presetTargetLabel}>Target DNS:</span>
+                                        <span class={s.presetTarget} title={preset.defaultUpstream}>
+                                            {preset.defaultUpstream}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         );
@@ -129,31 +131,42 @@ export const SmartRoutingCard = () => {
                 <div class={s.customTitle}>
                     <span>➕ Tambah Perutean Domain Kustom</span>
                 </div>
-                <form onSubmit={handleAddCustomRule} class={s.formRow}>
-                    <input
-                        type="text"
-                        class={s.inputField}
-                        placeholder="Nama Domain (misal: *.kantor.lan atau riot.com)"
-                        value={customDomain()}
-                        onInput={(e) => setCustomDomain(e.currentTarget.value)}
-                        required
-                    />
-                    <input
-                        type="text"
-                        class={s.inputField}
-                        placeholder="Target DNS Server (misal: 192.168.1.1 atau 1.1.1.1)"
-                        value={customTarget()}
-                        onInput={(e) => setCustomTarget(e.currentTarget.value)}
-                        required
-                    />
-                    <Button
-                        type="submit"
-                        variant="primary"
-                        size="medium"
-                        disabled={isSubmitting() || !customDomain().trim() || !customTarget().trim()}
-                    >
-                        Tambah Rute
-                    </Button>
+                <form onSubmit={handleAddCustomRule}>
+                    <div class={s.formRow}>
+                        <div class={s.inputGroup}>
+                            <label class={s.inputLabel}>Nama Domain:</label>
+                            <input
+                                type="text"
+                                class={s.inputField}
+                                placeholder="misal: *.kantor.lan atau riot.com"
+                                value={customDomain()}
+                                onInput={(e) => setCustomDomain(e.currentTarget.value)}
+                                required
+                            />
+                        </div>
+                        <div class={s.inputGroup}>
+                            <label class={s.inputLabel}>Target DNS Server:</label>
+                            <input
+                                type="text"
+                                class={s.inputField}
+                                placeholder="misal: 192.168.1.1 atau 1.1.1.1"
+                                value={customTarget()}
+                                onInput={(e) => setCustomTarget(e.currentTarget.value)}
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div class={s.submitBtnRow}>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            size="medium"
+                            class={s.submitBtn}
+                            disabled={isSubmitting() || !customDomain().trim() || !customTarget().trim()}
+                        >
+                            Tambah Rute
+                        </Button>
+                    </div>
                 </form>
             </div>
 

@@ -6,6 +6,10 @@
     margin-bottom: 32px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
     transition: all 0.3s ease;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .brandingHeader {
@@ -176,15 +180,13 @@
 .presetGrid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 12px;
     margin-top: 8px;
+    width: 100%;
+    box-sizing: border-box;
 
     @media (min-width: 600px) {
         grid-template-columns: repeat(2, 1fr);
-    }
-
-    @media (min-width: 992px) {
-        grid-template-columns: repeat(3, 1fr);
     }
 }
 
@@ -199,6 +201,8 @@
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     outline: none;
+    min-width: 0;
+    box-sizing: border-box;
 
     &:hover {
         border-color: var(--brst-primary-50, #0d84f8);
@@ -252,7 +256,21 @@
 .actionRow {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     flex-wrap: wrap;
-    padding-top: 8px;
+    padding-top: 14px;
+    width: 100%;
+    box-sizing: border-box;
 }
+
+.saveBtn,
+.resetBtn {
+    min-width: 160px !important;
+    max-width: 220px !important;
+    width: auto !important;
+    height: 44px !important;
+    padding: 0 24px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+}
+

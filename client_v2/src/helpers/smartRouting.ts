@@ -51,7 +51,7 @@ export const ROUTING_PRESETS: RoutingPreset[] = [
     {
         id: 'domestic',
         name: 'Rute Domestik Indonesia (.id)',
-        icon: '🇮🇩',
+        icon: '🌐',
         description: 'Rute langsung untuk seluruh domain Indonesia (.id, co.id, go.id, perbankan)',
         domains: ['id', 'co.id', 'go.id', 'ac.id', 'web.id'],
         defaultUpstream: '1.1.1.1',
