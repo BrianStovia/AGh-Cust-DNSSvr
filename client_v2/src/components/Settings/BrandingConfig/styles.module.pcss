@@ -1,17 +1,18 @@
 .brandingContainer {
-    background: var(--brst-bg-card, #111827);
-    border: 1px solid var(--brst-border-subtle, rgba(255, 255, 255, 0.08));
+    background: var(--default-cards-background, #ffffff);
+    border: 1px solid var(--default-item-divider, rgba(255, 255, 255, 0.1));
     border-radius: 14px;
     padding: 24px;
-    margin-bottom: 24px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    margin-bottom: 32px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    transition: all 0.3s ease;
 }
 
 .brandingHeader {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     flex-wrap: wrap;
     gap: 12px;
 }
@@ -24,7 +25,7 @@
 
 .badge {
     background: rgba(13, 132, 248, 0.15);
-    color: #38bdf8;
+    color: var(--brst-primary-50, #0d84f8);
     border: 1px solid rgba(13, 132, 248, 0.35);
     font-size: 11px;
     font-weight: 700;
@@ -37,18 +38,18 @@
 .title {
     font-size: 18px;
     font-weight: 700;
-    color: var(--default-main-text, #f8fafc);
+    color: var(--default-main-text, #0d1f38);
     margin: 0;
 }
 
 .desc {
-    color: var(--default-description-text, #94a3b8);
+    color: var(--default-description-text, #2a5080);
     font-size: 14px;
     line-height: 1.5;
     margin-bottom: 20px;
 }
 
-/* ── Live Preview Box ── */
+/* ── Live Preview Box (Sidebar simulation is always dark sleek) ── */
 .previewSection {
     margin-bottom: 24px;
 }
@@ -58,7 +59,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    color: var(--default-description-text, #94a3b8);
+    color: var(--default-description-text, #2a5080);
     margin-bottom: 8px;
 }
 
@@ -67,11 +68,12 @@
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    background: var(--brst-bg-deepest, #06090f);
-    border: 1px solid rgba(13, 132, 248, 0.25);
+    background: #06090f;
+    border: 1px solid rgba(13, 132, 248, 0.3);
     border-radius: 12px;
     flex-wrap: wrap;
     gap: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .previewLogoWrapper {
@@ -123,7 +125,7 @@
 
 .previewHint {
     font-size: 13px;
-    color: var(--default-description-text, #94a3b8);
+    color: #94a3b8;
 }
 
 /* ── Form Inputs ── */
@@ -147,16 +149,16 @@
 .inputLabel {
     font-size: 13px;
     font-weight: 600;
-    color: var(--default-main-text, #f8fafc);
+    color: var(--default-main-text, #0d1f38);
 }
 
 .textInput {
-    background: var(--brst-bg-surface, #141d2e);
-    border: 1px solid var(--brst-border-subtle, rgba(255, 255, 255, 0.1));
+    background: var(--default-input-background, #f0f6ff);
+    border: 1px solid var(--default-inactive-input-stroke, #b0ccee);
     border-radius: 8px;
     padding: 10px 14px;
     font-size: 14px;
-    color: var(--default-main-text, #f8fafc);
+    color: var(--default-main-text, #0d1f38);
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
@@ -191,23 +193,21 @@
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
-    background: var(--brst-bg-surface, #141d2e);
-    border: 1px solid var(--brst-border-subtle, rgba(255, 255, 255, 0.08));
+    background: var(--default-input-background, #f0f6ff);
+    border: 1px solid var(--default-inactive-input-stroke, #b0ccee);
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     outline: none;
 
     &:hover {
-        background: var(--brst-bg-elevated, #1a253a);
-        border-color: rgba(255, 255, 255, 0.2);
+        border-color: var(--brst-primary-50, #0d84f8);
     }
 }
 
 .presetCardActive {
-    background: var(--brst-bg-elevated, #1a253a) !important;
     border-color: var(--brst-primary-50, #0d84f8) !important;
-    box-shadow: 0 0 12px rgba(13, 132, 248, 0.3);
+    box-shadow: 0 0 0 2px var(--brst-primary-50, #0d84f8), 0 0 12px rgba(13, 132, 248, 0.3) !important;
 }
 
 .colorDots {
@@ -226,7 +226,7 @@
     position: absolute;
     left: 0;
     z-index: 2;
-    border: 2px solid var(--brst-bg-card, #111827);
+    border: 2px solid var(--default-cards-background, #ffffff);
 }
 
 .dotAccent {
@@ -236,13 +236,13 @@
     position: absolute;
     left: 10px;
     z-index: 1;
-    border: 2px solid var(--brst-bg-card, #111827);
+    border: 2px solid var(--default-cards-background, #ffffff);
 }
 
 .presetName {
     font-size: 13px;
     font-weight: 600;
-    color: var(--default-main-text, #f8fafc);
+    color: var(--default-main-text, #0d1f38);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

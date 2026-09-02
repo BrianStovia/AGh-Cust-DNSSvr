@@ -11,3 +11,8 @@ client/node_modules/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Local runtime
+AdGuardHome.yaml
+data/
+
