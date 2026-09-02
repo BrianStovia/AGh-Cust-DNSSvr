@@ -98,10 +98,8 @@ export const BrandingConfig = () => {
                             <span
                                 class={s.previewSubTitle}
                                 style={{
-                                    background: `linear-gradient(90deg, ${primaryColor()}, ${accentColor()})`,
-                                    '-webkit-background-clip': 'text',
-                                    '-webkit-text-fill-color': 'transparent',
-                                    'background-clip': 'text',
+                                    color: accentColor(),
+                                    'text-shadow': `0 0 10px ${accentColor()}60`,
                                 }}
                             >
                                 {subtitle() || 'BRST'}

@@ -66,12 +66,11 @@ export const Logo = (props: Props) => {
                         'font-weight': '800',
                         'font-size': '15px',
                         'letter-spacing': '2px',
-                        background: `linear-gradient(90deg, ${primary()}, ${accent()})`,
-                        '-webkit-background-clip': 'text',
-                        '-webkit-text-fill-color': 'transparent',
-                        'background-clip': 'text',
+                        color: accent(),
+                        'text-shadow': `0 0 10px ${accent()}60`,
                         'white-space': 'nowrap',
-                        'margin-top': '1px',
+                        'margin-top': '2px',
+                        display: 'inline-block',
                     }}
                 >
                     {subtitle()}
