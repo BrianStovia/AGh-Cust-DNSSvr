@@ -24,6 +24,7 @@ import { LogsConfig } from './LogsConfig';
 import { FiltersConfig } from './FiltersConfig';
 import { SafeSearchModal } from './SafeSearchModal';
 import { IgnoredDomainsModal } from './IgnoredDomainsModal';
+import { BrandingConfig } from './BrandingConfig';
 import {
     getRetentionSummary,
     getSafeSearchProviderTitle,
@@ -158,6 +159,8 @@ export const Settings = () => {
                     when={isLoading()}
                     fallback={
                         <>
+                            <BrandingConfig />
+
                             <h2
                                 id="filtering"
                                 class={cn(

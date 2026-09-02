@@ -1,3 +1,4 @@
+import { brandingState } from 'panel/stores/branding';
 import s from './styles.module.pcss';
 
 type Props = {
@@ -6,6 +7,12 @@ type Props = {
 };
 
 export const Logo = (props: Props) => {
+    const title = () => brandingState.title || 'DNS SERVER';
+    const subtitle = () => brandingState.subtitle || 'BRST';
+    const primary = () => brandingState.primaryColor || '#0d84f8';
+    const accent = () => brandingState.accentColor || '#00d4ef';
+    const glow = () => brandingState.glowColor || '0 0 16px rgba(13, 132, 248, 0.45)';
+
     return (
         <div
             style={{
@@ -23,14 +30,15 @@ export const Logo = (props: Props) => {
                     width: '36px',
                     height: '36px',
                     'border-radius': '10px',
-                    background: 'linear-gradient(135deg, #0d84f8 0%, #00d4ef 100%)',
-                    'box-shadow': '0 0 16px rgba(13, 132, 248, 0.45)',
+                    background: `linear-gradient(135deg, ${primary()} 0%, ${accent()} 100%)`,
+                    'box-shadow': glow(),
                     'flex-shrink': '0',
+                    transition: 'all 0.3s ease',
                 }}
             >
                 <img
                     src="assets/logo.svg"
-                    alt="DNS SERVER BRST Logo"
+                    alt={`${title()} ${subtitle()} Logo`}
                     style={{
                         height: '22px',
                         width: 'auto',
@@ -51,14 +59,14 @@ export const Logo = (props: Props) => {
                         'white-space': 'nowrap',
                     }}
                 >
-                    DNS SERVER
+                    {title()}
                 </span>
                 <span
                     style={{
                         'font-weight': '800',
                         'font-size': '15px',
                         'letter-spacing': '2px',
-                        'background': 'linear-gradient(90deg, #0d84f8, #00d4ef)',
+                        background: `linear-gradient(90deg, ${primary()}, ${accent()})`,
                         '-webkit-background-clip': 'text',
                         '-webkit-text-fill-color': 'transparent',
                         'background-clip': 'text',
@@ -66,7 +74,7 @@ export const Logo = (props: Props) => {
                         'margin-top': '1px',
                     }}
                 >
-                    BRST
+                    {subtitle()}
                 </span>
             </div>
         </div>

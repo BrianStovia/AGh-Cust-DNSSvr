@@ -116,6 +116,97 @@
     margin-bottom: 24px;
 }
 
+.protocolGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.protocolCard {
+    background: var(--brst-bg-card, #111827);
+    border: 1px solid var(--brst-border-subtle, rgba(255, 255, 255, 0.08));
+    border-radius: 12px;
+    padding: 16px 20px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+        border-color: rgba(13, 132, 248, 0.25);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+}
+
+.protocolHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.protocolBadge {
+    background: rgba(13, 132, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(13, 132, 248, 0.35);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+.protocolBadgeSecondary {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--default-description-text, #94a3b8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+.protocolTitle {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--default-main-text, #f8fafc);
+    margin: 0;
+}
+
+.protocolDesc {
+    color: var(--default-description-text, #94a3b8);
+    font-size: 13px;
+    line-height: 1.4;
+    margin-bottom: 10px;
+}
+
+.codeBox {
+    background: var(--brst-bg-deepest, #06090f);
+    border: 1px solid rgba(13, 132, 248, 0.2);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: var(--font-family-monospace, monospace);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.ipGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.ipPill {
+    background: var(--brst-bg-deepest, #06090f);
+    border: 1px solid var(--brst-border-subtle, rgba(255, 255, 255, 0.08));
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-family: var(--font-family-monospace, monospace);
+    font-size: 14px;
+}
+
 .addressList {
     list-style: none;
     padding: 0;

@@ -17,23 +17,23 @@
     --brst-cyan-50: #00d4ef;
     --brst-cyan-70: #00a8c4;
 
-    /* ── BRST Surface/Depth ── */
-    --brst-bg-deepest: #050d1a;
-    --brst-bg-deep: #0a1628;
-    --brst-bg-mid: #101f38;
-    --brst-bg-surface: #162844;
-    --brst-bg-elevated: #1e3558;
-    --brst-bg-card: #1a2f4a;
+    /* ── BRST Surface/Depth: Sleek Minimalist Dark ── */
+    --brst-bg-deepest: #06090f;
+    --brst-bg-deep: #0a0e17;
+    --brst-bg-mid: #0f1523;
+    --brst-bg-surface: #141d2e;
+    --brst-bg-elevated: #1a253a;
+    --brst-bg-card: #111827;
 
-    /* ── BRST Borders ── */
-    --brst-border-subtle: rgba(13, 132, 248, 0.12);
-    --brst-border-default: rgba(13, 132, 248, 0.25);
-    --brst-border-accent: rgba(0, 212, 239, 0.4);
+    /* ── BRST Borders: Crisp and Subtle ── */
+    --brst-border-subtle: rgba(255, 255, 255, 0.08);
+    --brst-border-default: rgba(13, 132, 248, 0.22);
+    --brst-border-accent: rgba(0, 212, 239, 0.45);
 
-    /* ── BRST Glows ── */
-    --brst-glow-primary: 0 0 24px rgba(13, 132, 248, 0.3);
-    --brst-glow-cyan: 0 0 20px rgba(0, 212, 239, 0.25);
-    --brst-glow-sm: 0 0 12px rgba(13, 132, 248, 0.2);
+    /* ── BRST Glows & Shadows ── */
+    --brst-glow-primary: 0 4px 20px rgba(13, 132, 248, 0.25);
+    --brst-glow-cyan: 0 4px 20px rgba(0, 212, 239, 0.2);
+    --brst-glow-sm: 0 2px 10px rgba(13, 132, 248, 0.18);
 
     /* ── Product primary remapped to BRST blue ── */
     --product-primary-0: #e8f4ff;

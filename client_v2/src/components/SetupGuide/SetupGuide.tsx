@@ -65,31 +65,65 @@ export const SetupGuide = (props: Props) => {
                             {intl.getMessage('encrypted_dns_addresses')}
                         </div>
 
-                        <ul class={s.addressList}>
+                        <div class={s.protocolGrid}>
                             <For each={encryptedAddresses()}>
-                                {(ip) => (
-                                    <li class={s.address}>
-                                        <span class={s.bulletIcon} />
-                                        <CopiedText text={ip} />
-                                    </li>
-                                )}
+                                {(addr) => {
+                                    const isDot = addr.startsWith('tls://');
+                                    const isDoh = addr.startsWith('https://');
+                                    const isDoq = addr.startsWith('quic://');
+
+                                    return (
+                                        <div class={s.protocolCard}>
+                                            <div class={s.protocolHeader}>
+                                                <span class={s.protocolBadge}>
+                                                    {isDot && 'DoT (Port 853)'}
+                                                    {isDoh && 'DoH (Port 443)'}
+                                                    {isDoq && 'DoQ (Port 853)'}
+                                                    {!isDot && !isDoh && !isDoq && 'TLS'}
+                                                </span>
+                                                <h4 class={s.protocolTitle}>
+                                                    {isDot && 'DNS-over-TLS'}
+                                                    {isDoh && 'DNS-over-HTTPS'}
+                                                    {isDoq && 'DNS-over-QUIC'}
+                                                    {!isDot && !isDoh && !isDoq && 'Encrypted DNS'}
+                                                </h4>
+                                            </div>
+                                            <p class={s.protocolDesc}>
+                                                {isDot && 'Digunakan oleh router, Stubby, atau upstream DNS. Khusus Private DNS Android, gunakan hanya nama domain (tanpa tls:// atau port).'}
+                                                {isDoh && 'Format universal terenkripsi untuk peramban (Chrome, Firefox), iOS, dan aplikasi DNS mobile.'}
+                                                {isDoq && 'Protokol kueri modern berbasis UDP QUIC dengan koneksi instan dan latensi minimal.'}
+                                            </p>
+                                            <div class={s.codeBox}>
+                                                <CopiedText text={addr} />
+                                            </div>
+                                        </div>
+                                    );
+                                }}
                             </For>
-                        </ul>
+                        </div>
                     </Show>
 
                     <Show when={plainAddresses().length > 0}>
                         <div class={s.dnsSubtitle}>{intl.getMessage('plain_dns_addresses')}</div>
 
-                        <ul class={s.addressList}>
-                            <For each={plainAddresses()}>
-                                {(ip) => (
-                                    <li class={s.address}>
-                                        <span class={s.bulletIcon} />
-                                        <CopiedText text={ip} />
-                                    </li>
-                                )}
-                            </For>
-                        </ul>
+                        <div class={s.protocolCard}>
+                            <div class={s.protocolHeader}>
+                                <span class={s.protocolBadgeSecondary}>Port 53 (UDP/TCP)</span>
+                                <h4 class={s.protocolTitle}>DNS Standar Lokal</h4>
+                            </div>
+                            <p class={s.protocolDesc}>
+                                Digunakan untuk konfigurasi DNS statis pada router Wi-Fi lokal atau perangkat tanpa dukungan enkripsi.
+                            </p>
+                            <div class={s.ipGrid}>
+                                <For each={plainAddresses()}>
+                                    {(ip) => (
+                                        <div class={s.ipPill}>
+                                            <CopiedText text={ip} />
+                                        </div>
+                                    )}
+                                </For>
+                            </div>
+                        </div>
                     </Show>
                 </div>
             </div>

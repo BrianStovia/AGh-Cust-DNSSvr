@@ -18,17 +18,17 @@
     /* ── Dividers ── */
     --default-item-divider: var(--brst-border-subtle);
 
-    /* ── Text ── */
-    --default-main-text: #e8f2ff;
-    --disabled-main-text: #5a7a9e;
-    --default-description-text: #90b4d4;
-    --default-labels: #90b4d4;
+    /* ── Text: Crisp, High-Contrast ── */
+    --default-main-text: #f8fafc;
+    --disabled-main-text: #475569;
+    --default-description-text: #94a3b8;
+    --default-labels: #94a3b8;
 
     /* ── Input ── */
     --default-input-background: var(--brst-bg-surface);
     --default-active-input-stroke: var(--brst-primary-50);
-    --default-inactive-input-stroke: var(--brst-border-default);
-    --default-placeholder: #4a6a88;
+    --default-inactive-input-stroke: var(--brst-border-subtle);
+    --default-placeholder: #64748b;
     --default-input-on-card-background: var(--brst-bg-elevated);
     --disabled-input-on-card-background: var(--brst-bg-surface);
 
