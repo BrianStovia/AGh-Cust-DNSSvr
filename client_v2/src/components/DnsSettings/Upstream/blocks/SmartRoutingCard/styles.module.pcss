@@ -1,0 +1,263 @@
+.smartCard {
+    background: var(--default-cards-background, #ffffff);
+    border: 1px solid var(--default-item-divider, rgba(255, 255, 255, 0.1));
+    border-radius: 14px;
+    padding: 24px;
+    margin-top: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.titleArea {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.badge {
+    background: rgba(13, 132, 248, 0.15);
+    color: var(--brst-primary-50, #0d84f8);
+    border: 1px solid rgba(13, 132, 248, 0.35);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--default-main-text, #0d1f38);
+    margin: 0;
+}
+
+.desc {
+    color: var(--default-description-text, #2a5080);
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+/* ── Preset Grid ── */
+.presetsGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 24px;
+
+    @media (min-width: 768px) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.presetCard {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 16px;
+    background: var(--default-input-background, #f0f6ff);
+    border: 1px solid var(--default-inactive-input-stroke, #b0ccee);
+    border-radius: 12px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.presetCardActive {
+    border-color: var(--brst-primary-50, #0d84f8) !important;
+    background: rgba(13, 132, 248, 0.08) !important;
+    box-shadow: 0 0 16px rgba(13, 132, 248, 0.2);
+}
+
+.presetTop {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.presetIcon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.presetName {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--default-main-text, #0d1f38);
+    margin-bottom: 4px;
+}
+
+.presetDesc {
+    font-size: 12px;
+    color: var(--default-description-text, #2a5080);
+    line-height: 1.4;
+    margin-bottom: 12px;
+}
+
+.presetFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px solid var(--default-item-divider, rgba(255, 255, 255, 0.08));
+}
+
+.presetTarget {
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--brst-cyan-50, #00d4ef);
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* ── Custom Domain Route Form ── */
+.customSection {
+    background: var(--default-input-background, #f0f6ff);
+    border: 1px solid var(--default-item-divider, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 24px;
+}
+
+.customTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--default-main-text, #0d1f38);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+
+    @media (min-width: 768px) {
+        grid-template-columns: 1fr 1fr auto;
+    }
+}
+
+.inputField {
+    background: var(--default-cards-background, #ffffff);
+    border: 1px solid var(--default-inactive-input-stroke, #b0ccee);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--default-main-text, #0d1f38);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus {
+        border-color: var(--brst-primary-50, #0d84f8);
+        box-shadow: 0 0 0 3px rgba(13, 132, 248, 0.2);
+    }
+}
+
+/* ── Active Rules List ── */
+.rulesList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ruleItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--default-input-background, #f0f6ff);
+    border: 1px solid var(--default-item-divider, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.ruleLeft {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.ruleDomains {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.domainTag {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--default-main-text, #0d1f38);
+    background: var(--default-cards-background, #ffffff);
+    border: 1px solid var(--default-inactive-input-stroke, #b0ccee);
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+.arrowIcon {
+    color: var(--brst-primary-50, #0d84f8);
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.targetTag {
+    font-size: 12px;
+    font-family: monospace;
+    font-weight: 600;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+.rulePresetBadge {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brst-cyan-50, #00d4ef);
+    background: rgba(0, 212, 239, 0.12);
+    border: 1px solid rgba(0, 212, 239, 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.deleteBtn {
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: #ef4444;
+    }
+}
+
+.emptyNotice {
+    color: var(--default-description-text, #2a5080);
+    font-size: 13px;
+    font-style: italic;
+    padding: 8px 0;
+}

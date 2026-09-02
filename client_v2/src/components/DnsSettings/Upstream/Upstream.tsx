@@ -16,6 +16,7 @@ import { ServerAddressesDialog } from './blocks/ServerAddressesDialog';
 import { FallbackDnsDialog } from './blocks/FallbackDnsDialog';
 import { BootstrapDnsDialog } from './blocks/BootstrapDnsDialog';
 import { TimeoutDialog } from './blocks/TimeoutDialog';
+import { SmartRoutingCard } from './blocks/SmartRoutingCard';
 import { Paths } from 'panel/components/Routes/Paths';
 
 export const Upstream = () => {
@@ -131,6 +132,8 @@ export const Upstream = () => {
                     {intl.getMessage('dns_test_upstreams')}
                 </Button>
             </div>
+
+            <SmartRoutingCard />
 
             <UpstreamModeDialog
                 open={upstreamModeDialog.open}
