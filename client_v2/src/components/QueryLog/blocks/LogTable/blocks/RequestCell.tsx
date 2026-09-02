@@ -6,6 +6,7 @@ import { Tooltip } from 'panel/common/ui/Tooltip';
 import theme from 'panel/lib/theme';
 import { Icon } from 'panel/common/ui/Icon';
 import { getProtocolName } from 'panel/components/QueryLog/helpers';
+import { getDomainCountryFlag } from 'panel/helpers/flags';
 import { QueryDetailsTooltipContent } from 'panel/components/QueryLog/blocks/LogTable/blocks/QueryDetailsTooltipContent';
 import type { NormalizedQueryLogItem } from 'panel/helpers/helpers';
 
@@ -16,6 +17,8 @@ type Props = {
 };
 
 export const RequestCell = (props: Props) => {
+    const domainFlag = () => getDomainCountryFlag(props.row.domain);
+
     return (
         <div class={s.requestCell} data-testid="query-log-request-cell">
             <div class={s.requestContent}>
@@ -26,6 +29,16 @@ export const RequestCell = (props: Props) => {
                     >
                         {props.row.unicodeName || props.row.domain}
                     </span>
+
+                    <Show when={domainFlag()}>
+                        <span
+                            class={s.cctldBadge}
+                            title={`${domainFlag()!.name} (${domainFlag()!.code})`}
+                        >
+                            <span>{domainFlag()!.flag}</span>
+                            <span>{domainFlag()!.code}</span>
+                        </span>
+                    </Show>
 
                     <div class={s.requestIcons}>
                         <Tooltip

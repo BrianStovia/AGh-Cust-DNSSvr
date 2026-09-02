@@ -20,6 +20,7 @@ import {
     hasPersistentClient,
     isBlockedReason,
 } from '../../helpers';
+import { getCountryFlag, getDomainCountryFlag } from 'panel/helpers/flags';
 import type { NormalizedQueryLogItem } from 'panel/helpers/helpers';
 import { Service } from '../../types';
 import { ActionsMenu } from '../ActionsMenu';
@@ -46,6 +47,8 @@ export const LogCard = (props: Props) => {
     const proto = () => getProtocolName(props.entry.client_proto);
     const clientDetails = () => props.entry.client_info?.name || props.entry.client_id;
     const clientLocation = () => getClientLocation(props.entry.client_info?.whois);
+    const clientCountryFlag = () => getCountryFlag(props.entry.client_info?.whois?.country);
+    const domainFlag = () => getDomainCountryFlag(props.entry.domain);
     const statusKey = () =>
         getQueryStatusKey(props.entry.reason, props.entry.originalResponse ?? []);
     const reasonKey = () => getQueryReasonKey(props.entry.reason, props.entry.rules ?? []);
@@ -83,6 +86,30 @@ export const LogCard = (props: Props) => {
                             >
                                 {displayDomain()}
                             </span>
+
+                            <Show when={domainFlag()}>
+                                <span
+                                    style={{
+                                        display: 'inline-flex',
+                                        'align-items': 'center',
+                                        gap: '3px',
+                                        padding: '1px 5px',
+                                        background: 'rgba(13, 132, 248, 0.12)',
+                                        border: '1px solid rgba(13, 132, 248, 0.3)',
+                                        'border-radius': '4px',
+                                        'font-size': '11px',
+                                        'font-weight': '700',
+                                        color: 'var(--brst-cyan-50, #00d4ef)',
+                                        'line-height': '1',
+                                        'margin-left': '6px',
+                                        'flex-shrink': '0',
+                                    }}
+                                    title={`${domainFlag()!.name} (${domainFlag()!.code})`}
+                                >
+                                    <span>{domainFlag()!.flag}</span>
+                                    <span>{domainFlag()!.code}</span>
+                                </span>
+                            </Show>
 
                             <div class={s.iconsRow}>
                                 <span class={s.iconWrapper} aria-hidden="true">
@@ -179,6 +206,11 @@ export const LogCard = (props: Props) => {
                             {intl.getMessage('client_location')}
                         </span>
                         <span class={cn(s.fieldValue, theme.text.t4, theme.text.condenced)}>
+                            <Show when={clientCountryFlag()}>
+                                <span style={{ 'margin-right': '6px', 'font-size': '14px' }}>
+                                    {clientCountryFlag()}
+                                </span>
+                            </Show>
                             {clientLocation()}
                         </span>
                     </Show>

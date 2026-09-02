@@ -25,6 +25,7 @@ import {
     formatLogTimeDetailed,
     formatLogDate,
 } from '../../helpers';
+import { getCountryFlag } from 'panel/helpers/flags';
 import type { NormalizedQueryLogItem } from 'panel/helpers/helpers';
 import { Service } from '../../types';
 
@@ -457,10 +458,14 @@ export const DetailModal = (props: Props) => {
                                 data-testid="query-log-detail-client-country"
                                 data-field="client-country"
                             >
-                                {intl.getMessage('query_log_detail_country', {
-                                    value: country(),
-                                    span: renderValue,
-                                })}
+                                <span class={labelClassName()}>
+                                    {intl.getMessage('query_log_detail_country')}
+                                </span>{' '}
+                                {renderValue(
+                                    getCountryFlag(country())
+                                        ? `${getCountryFlag(country())} ${country()}`
+                                        : country(),
+                                )}
                             </div>
                         </Show>
                         <Show when={hasValue(network())}>
