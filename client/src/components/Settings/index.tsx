@@ -19,6 +19,7 @@ import Card from '../ui/Card';
 import { captitalizeWords } from '../../helpers/helpers';
 import './Settings.css';
 import { SettingsData } from '../../initialState';
+import AccountConfig from './AccountConfig';
 
 interface SettingsProps {
     initSettings: (...args: unknown[]) => unknown;
@@ -137,6 +138,10 @@ class Settings extends Component<SettingsProps> {
                 {isDataReady && (
                     <div className="content">
                         <div className="row">
+                            <div className="col-md-12">
+                                <AccountConfig />
+                            </div>
+
                             <div className="col-md-12">
                                 <Card bodyType="card-body box-body--settings">
                                     <div className="form">
