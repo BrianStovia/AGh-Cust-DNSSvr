@@ -29,6 +29,7 @@ import { AccountConfig } from './AccountConfig';
 import { MaintenanceConfig } from './MaintenanceConfig';
 import { UnblockRequests } from '../UnblockRequests';
 import { ODoHConfig } from './ODoHConfig';
+import { DoHHubConfig } from './DoHHubConfig';
 import {
     getRetentionSummary,
     getSafeSearchProviderTitle,
@@ -172,6 +173,8 @@ export const Settings = () => {
                             <UnblockRequests />
 
                             <ODoHConfig />
+
+                            <DoHHubConfig />
 
                             <h2
                                 id="filtering"

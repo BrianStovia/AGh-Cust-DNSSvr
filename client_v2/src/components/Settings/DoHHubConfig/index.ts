@@ -1,0 +1,1 @@
+export { DoHHubConfig } from './DoHHubConfig';
