@@ -205,12 +205,15 @@ func (web *webAPI) registerControlHandlers() {
 	web.httpReg.Register(http.MethodPut, "/control/profile/change_password", web.handlePutChangePassword)
 	web.httpReg.Register(http.MethodPost, "/control/maintenance/optimize", web.handlePostMaintenanceOptimize)
 	web.httpReg.Register(http.MethodGet, "/control/stats/geo_upstream", web.handleGetGeoUpstreams)
+	web.httpReg.Register(http.MethodGet, "/control/unblock_requests", web.handleGetUnblockRequests)
+	web.httpReg.Register(http.MethodPost, "/control/unblock_requests/approve", web.handlePostApproveUnblockRequest)
+	web.httpReg.Register(http.MethodPost, "/control/unblock_requests/delete", web.handlePostDeleteUnblockRequest)
 
 	mobileConfHandler := newMobileConfigHandler(&mobileConfigHandlerConfig{
 		logger: web.baseLogger,
 	})
 
-	// No authentication is required for DoH/DoT configuration endpoints.
+	// No authentication is required for DoH/DoT configuration and block page endpoints.
 	mux.Handle(
 		"/apple/doh.mobileconfig",
 		web.postInstallHandler(http.HandlerFunc(mobileConfHandler.handleMobileConfigDoH)),
@@ -218,6 +221,18 @@ func (web *webAPI) registerControlHandlers() {
 	mux.Handle(
 		"/apple/dot.mobileconfig",
 		web.postInstallHandler(http.HandlerFunc(mobileConfHandler.handleMobileConfigDoT)),
+	)
+	mux.Handle(
+		"/blocked",
+		web.postInstallHandler(http.HandlerFunc(web.handleGetBlockPage)),
+	)
+	mux.Handle(
+		"/blocked.html",
+		web.postInstallHandler(http.HandlerFunc(web.handleGetBlockPage)),
+	)
+	mux.Handle(
+		"/control/unblock_requests/submit",
+		web.postInstallHandler(http.HandlerFunc(web.handlePostSubmitUnblockRequest)),
 	)
 
 	web.registerAuthHandlers()

@@ -353,6 +353,18 @@ func (d *DNSFilter) WriteDiskConfig(c *Config) {
 	c.UserRules = slices.Clone(d.conf.UserRules)
 }
 
+// AddUserRule appends a user custom filtering rule, saves to config, and enables filters.
+func (d *DNSFilter) AddUserRule(ctx context.Context, rule string) {
+	d.conf.filtersMu.Lock()
+	d.conf.UserRules = append(d.conf.UserRules, rule)
+	d.conf.filtersMu.Unlock()
+
+	if d.conf.ConfModifier != nil {
+		d.conf.ConfModifier.Apply(ctx)
+	}
+	d.EnableFilters(true)
+}
+
 // setFilters sets new filters, synchronously or asynchronously.  When filters
 // are set asynchronously, the old filters continue working until the new
 // filters are ready.
