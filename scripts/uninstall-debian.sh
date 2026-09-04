@@ -45,14 +45,17 @@ echo "${GREEN}[✓] Service berhasil dihentikan & dicopot.${NC}"
 
 # 3. Restore systemd-resolved DNSStubListener if modified
 echo "${BLUE}[2/4] Mengembalikan pengaturan DNS bawaan sistem...${NC}"
+rm -f /etc/systemd/resolved.conf.d/adguardhome.conf 2>/dev/null || true
 if [ -f /etc/systemd/resolved.conf ]; then
 	sed -i 's/DNSStubListener=no/#DNSStubListener=yes/' /etc/systemd/resolved.conf 2>/dev/null || true
+fi
+if command -v systemctl >/dev/null 2>&1; then
 	systemctl restart systemd-resolved 2>/dev/null || true
 fi
 
 # 4. Remove Kernel sysctl optimizations
 echo "${BLUE}[3/4] Menghapus file konfigurasi kernel sysctl BRST...${NC}"
-rm -f /etc/sysctl.d/99-dns-server-brst.conf
+rm -f /etc/sysctl.d/99-dns-server-brst.conf /etc/sysctl.d/99-adguardhome-performance.conf
 if command -v sysctl >/dev/null 2>&1; then
 	sysctl --system >/dev/null 2>&1 || true
 fi

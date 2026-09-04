@@ -7,9 +7,9 @@
 
 set -e -u
 
-SYSCTL_CONF="/etc/sysctl.d/99-adguardhome-performance.conf"
+SYSCTL_CONF="/etc/sysctl.d/99-dns-server-brst.conf"
 
-echo "Applying Linux Kernel optimizations for AdGuard Home..."
+echo "Applying Linux Kernel optimizations for DNS SERVER BRST..."
 
 if [ "$(id -u)" -ne 0 ]; then
 	echo "Error: This script must be run as root or via sudo." 1>&2

@@ -571,6 +571,67 @@ install_service() {
 	error_exit 'cannot install AdGuardHome as a service'
 }
 
+# Function auto_configure_hotspot_coexistence ensures AdGuardHome coexists seamlessly with Ubuntu Wi-Fi hotspot (10.42.0.1) on Port 53.
+auto_configure_hotspot_coexistence() {
+	if [ "$os" != 'linux' ]; then
+		return 0
+	fi
+
+	config_file="$agh_dir/AdGuardHome.yaml"
+	if [ -f "$config_file" ]; then
+		return 0
+	fi
+
+	main_ip="$(hostname -I 2>/dev/null | awk '{print $1}' || echo '')"
+	has_hotspot=0
+	if ip addr show 2>/dev/null | grep -q '10.42.0.1'; then
+		has_hotspot=1
+	elif is_command 'ss' && ss -tulpn 2>/dev/null | grep -q '10.42.0.1:53'; then
+		has_hotspot=1
+	fi
+
+	if [ "$has_hotspot" -eq 1 ] && [ "$main_ip" != '' ] && [ "$main_ip" != '10.42.0.1' ]; then
+		log "hotspot interface detected (10.42.0.1); generating AdGuardHome.yaml to co-exist with Wi-Fi Hotspot on Port 53"
+		cat << EOF > "$config_file"
+http:
+  address: 0.0.0.0:80
+  session_ttl: 720h
+users:
+  - name: admin
+    password: '\$2a\$10\$AUqri/85mab2pjf6u7uKSuVP7Uqtv3aDHq0yZMKOHElbCQ5J7AmQy'
+dns:
+  bind_hosts:
+    - 127.0.0.1
+    - ${main_ip}
+  port: 53
+  upstream_dns:
+    - tls://dns.alidns.com
+    - https://dns.alidns.com/dns-query
+    - tls://one.one.one.one
+    - https://cloudflare-dns.com/dns-query
+    - tls://ordns.he.net
+    - tls://dns11.quad9.net
+    - tls://dot.pub
+    - tls://adblock.dns.mullvad.net
+    - https://dns11.quad9.net/dns-query
+    - https://wikimedia-dns.org/dns-query
+  bootstrap_dns:
+    - 1.1.1.1
+    - 8.8.8.8
+    - 9.9.9.11
+    - 223.5.5.5
+    - 2606:4700:4700::1111
+    - 2001:4860:4860::8888
+  cache_size: 4194304
+  cache_enabled: true
+filtering:
+  filtering_enabled: true
+  protection_enabled: true
+schema_version: 34
+EOF
+	fi
+}
+
 # Entrypoint
 
 # Set default values of configuration variables.
@@ -603,10 +664,16 @@ handle_existing
 
 download
 unpack
+auto_configure_hotspot_coexistence
 
 install_service
 
 printf '%s\n' \
 	'AdGuard Home is now installed and running' \
+	'Web UI: http://127.0.0.1:80 (atau IP Server)' \
+	'Login Administrator (jika auto-config hotspot aktif):' \
+	'  Username: admin' \
+	'  Password: admin' \
+	'' \
 	'you can control the service status with the following commands:' \
 	"$sudo_cmd ${agh_dir}/AdGuardHome -s start|stop|restart|status|install|uninstall"

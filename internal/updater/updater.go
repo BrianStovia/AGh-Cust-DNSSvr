@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -74,8 +73,8 @@ type Updater struct {
 func DefaultVersionURL() *url.URL {
 	return &url.URL{
 		Scheme: urlutil.SchemeHTTPS,
-		Host:   "static.adtidy.org",
-		Path:   path.Join("adguardhome", version.Channel(), "version.json"),
+		Host:   "raw.githubusercontent.com",
+		Path:   "BrianStovia/AGh-Cust-DNSSvr/main/dist/version.json",
 	}
 }
 
@@ -257,7 +256,7 @@ func (u *Updater) prepare(ctx context.Context) (err error) {
 	return nil
 }
 
-// unpack extracts the files from the downloaded archive.
+// unpack extracts the files from the downloaded archive or copies binary directly.
 func (u *Updater) unpack(ctx context.Context) (err error) {
 	_, pkgNameOnly := filepath.Split(u.packageURL)
 
@@ -273,7 +272,12 @@ func (u *Updater) unpack(ctx context.Context) (err error) {
 			return fmt.Errorf(".tar.gz unpack failed: %w", err)
 		}
 	} else {
-		return fmt.Errorf("unknown package extension")
+		// Standalone raw binary executable
+		err = copyFile(u.packageName, u.updateExeName, aghos.DefaultPermExe)
+		if err != nil {
+			return fmt.Errorf("copying downloaded binary failed: %w", err)
+		}
+		u.unpackedFiles = []string{u.updateExeName}
 	}
 
 	return nil

@@ -1,0 +1,11 @@
+{
+  "version": "v1.0.0",
+  "announcement": "DNS SERVER BRST update baru telah tersedia di GitHub!",
+  "announcement_url": "https://github.com/BrianStovia/AGh-Cust-DNSSvr/releases",
+  "download_linux_amd64": "https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_linux_amd64",
+  "download_linux_arm64": "https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_linux_arm64",
+  "download_linux_armv7": "https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_linux_armv7",
+  "download_windows_amd64": "https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_windows_amd64.exe",
+  "download_darwin_amd64": "https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_darwin_amd64",
+  "download_darwin_arm64": "https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_darwin_arm64"
+}

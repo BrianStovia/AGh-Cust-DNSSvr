@@ -18,7 +18,7 @@ import (
 )
 
 // TODO(a.garipov): Make configurable.
-const versionCheckPeriod = 8 * time.Hour
+const versionCheckPeriod = 1 * time.Hour
 
 // VersionInfo contains information about a new version.
 type VersionInfo struct {

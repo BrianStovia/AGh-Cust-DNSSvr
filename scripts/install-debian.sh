@@ -509,18 +509,32 @@ auto_configure_hotspot_coexistence() {
 http:
   address: 0.0.0.0:80
   session_ttl: 720h
+users:
+  - name: admin
+    password: '\$2a\$10\$AUqri/85mab2pjf6u7uKSuVP7Uqtv3aDHq0yZMKOHElbCQ5J7AmQy'
 dns:
   bind_hosts:
     - 127.0.0.1
     - ${main_ip}
   port: 53
   upstream_dns:
-    - 1.1.1.1
-    - 1.0.0.1
-    - 8.8.8.8
+    - tls://dns.alidns.com
+    - https://dns.alidns.com/dns-query
+    - tls://one.one.one.one
+    - https://cloudflare-dns.com/dns-query
+    - tls://ordns.he.net
+    - tls://dns11.quad9.net
+    - tls://dot.pub
+    - tls://adblock.dns.mullvad.net
+    - https://dns11.quad9.net/dns-query
+    - https://wikimedia-dns.org/dns-query
   bootstrap_dns:
     - 1.1.1.1
     - 8.8.8.8
+    - 9.9.9.11
+    - 223.5.5.5
+    - 2606:4700:4700::1111
+    - 2001:4860:4860::8888
   cache_size: 4194304
   cache_enabled: true
 filtering:
@@ -569,5 +583,10 @@ install_service
 
 printf '%s\n' \
 	'DNS SERVER BRST is now installed and running' \
+	'Web UI: http://127.0.0.1:80 (atau IP Server)' \
+	'Login Administrator (jika auto-config hotspot aktif):' \
+	'  Username: admin' \
+	'  Password: admin' \
+	'' \
 	'you can control the service status with the following commands:' \
 	"$sudo_cmd ${agh_dir}/AdGuardHome -s start|stop|restart|status|install|uninstall"

@@ -63,6 +63,27 @@ jobs:
           echo "Building macOS arm64 (Apple Silicon)..."
           GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="$LDFLAGS" -o dist/AdGuardHome_darwin_arm64 main.go
 
+      - name: Generate version.json for Update Notifications
+        run: |
+          REL_VERSION="${{ github.ref_name }}"
+          if [ -z "$REL_VERSION" ] || [ "$REL_VERSION" = "main" ]; then
+            REL_VERSION="v$(date +'%Y.%m.%d.%H%M')"
+          fi
+          
+          cat << EOF > dist/version.json
+          {
+            "version": "${REL_VERSION}",
+            "announcement": "DNS SERVER BRST ${REL_VERSION} update baru telah tersedia di GitHub!",
+            "announcement_url": "https://github.com/BrianStovia/AGh-Cust-DNSSvr/releases",
+            "download_linux_amd64": "https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_linux_amd64",
+            "download_linux_arm64": "https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_linux_arm64",
+            "download_linux_armv7": "https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_linux_armv7",
+            "download_windows_amd64": "https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_windows_amd64.exe",
+            "download_darwin_amd64": "https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_darwin_amd64",
+            "download_darwin_arm64": "https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_darwin_arm64"
+          }
+          EOF
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:

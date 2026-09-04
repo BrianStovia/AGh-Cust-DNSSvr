@@ -125,6 +125,22 @@ EOF
 	done
 fi
 
+# Ensure AdGuardHome has users configured (prevents accidental userless/no-login state)
+if [ -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
+	if ! grep -q "^users:" "$INSTALL_DIR/AdGuardHome.yaml"; then
+		echo "${YELLOW}[!] Menambahkan akun admin default karena bagian users belum dikonfigurasi...${NC}"
+		if grep -q "^schema_version:" "$INSTALL_DIR/AdGuardHome.yaml"; then
+			sed -i '/^schema_version:/i users:\n  - name: admin\n    password: "$2a$10$AUqri/85mab2pjf6u7uKSuVP7Uqtv3aDHq0yZMKOHElbCQ5J7AmQy"' "$INSTALL_DIR/AdGuardHome.yaml"
+		else
+			cat << 'EOF' >> "$INSTALL_DIR/AdGuardHome.yaml"
+users:
+  - name: admin
+    password: "$2a$10$AUqri/85mab2pjf6u7uKSuVP7Uqtv3aDHq0yZMKOHElbCQ5J7AmQy"
+EOF
+		fi
+	fi
+fi
+
 # Ensure AdGuardHome can coexist with Hotspot if 10.42.0.1 is active and AdGuardHome.yaml has 0.0.0.0
 if [ -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
 	if ip addr show 2>/dev/null | grep -q '10.42.0.1' || (command -v ss >/dev/null 2>&1 && ss -tulpn 2>/dev/null | grep -q '10.42.0.1:53'); then
@@ -153,6 +169,10 @@ echo "${GREEN}   [✓] UPDATE DNS SERVER BRST SELESAI & AKTIF!      ${NC}"
 echo "${GREEN}=====================================================${NC}"
 echo "Dashboard Admin dapat diakses di:"
 echo "${CYAN}  http://${IP_ADDR}${NC}"
+echo ""
+echo "Login Administrator:"
+echo "  Username: admin"
+echo "  Password: admin (atau password yang telah Anda ubah)"
 echo ""
 echo "Perintah status:"
 echo "  sudo systemctl status AdGuardHome"

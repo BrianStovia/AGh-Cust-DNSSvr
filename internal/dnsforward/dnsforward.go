@@ -44,7 +44,16 @@ const DefaultTimeout = 10 * time.Second
 const defaultLocalTimeout = 1 * time.Second
 
 var defaultDNS = []string{
-	"https://dns10.quad9.net/dns-query",
+	"tls://dns.alidns.com",
+	"https://dns.alidns.com/dns-query",
+	"tls://one.one.one.one",
+	"https://cloudflare-dns.com/dns-query",
+	"tls://ordns.he.net",
+	"tls://dns11.quad9.net",
+	"tls://dot.pub",
+	"tls://adblock.dns.mullvad.net",
+	"https://dns11.quad9.net/dns-query",
+	"https://wikimedia-dns.org/dns-query",
 }
 var defaultBootstrap = []string{"9.9.9.10", "149.112.112.10", "2620:fe::10", "2620:fe::fe:10"}
 
