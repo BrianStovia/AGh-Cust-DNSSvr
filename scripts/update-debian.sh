@@ -129,15 +129,12 @@ fi
 if [ -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
 	if ! grep -q "^users:" "$INSTALL_DIR/AdGuardHome.yaml"; then
 		echo "${YELLOW}[!] Menambahkan akun admin default karena bagian users belum dikonfigurasi...${NC}"
-		if grep -q "^schema_version:" "$INSTALL_DIR/AdGuardHome.yaml"; then
-			sed -i '/^schema_version:/i users:\n  - name: admin\n    password: "$2a$10$AUqri/85mab2pjf6u7uKSuVP7Uqtv3aDHq0yZMKOHElbCQ5J7AmQy"' "$INSTALL_DIR/AdGuardHome.yaml"
-		else
-			cat << 'EOF' >> "$INSTALL_DIR/AdGuardHome.yaml"
+		cat << 'EOF' >> "$INSTALL_DIR/AdGuardHome.yaml"
+
 users:
   - name: admin
     password: "$2a$10$AUqri/85mab2pjf6u7uKSuVP7Uqtv3aDHq0yZMKOHElbCQ5J7AmQy"
 EOF
-		fi
 	fi
 fi
 
@@ -147,11 +144,74 @@ if [ -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
 		MAIN_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo '')"
 		if [ "$MAIN_IP" != '' ] && [ "$MAIN_IP" != '10.42.0.1' ]; then
 			if grep -q -- "- 0.0.0.0" "$INSTALL_DIR/AdGuardHome.yaml"; then
-				sed -i "/- 0.0.0.0/c\    - 127.0.0.1\n    - ${MAIN_IP}" "$INSTALL_DIR/AdGuardHome.yaml"
+				awk -v ip="$MAIN_IP" '{
+					if ($0 ~ /^[[:space:]]*- 0\.0\.0\.0/) {
+						print "    - 127.0.0.1";
+						print "    - " ip;
+					} else {
+						print $0;
+					}
+				}' "$INSTALL_DIR/AdGuardHome.yaml" > "$INSTALL_DIR/AdGuardHome.yaml.tmp" && mv "$INSTALL_DIR/AdGuardHome.yaml.tmp" "$INSTALL_DIR/AdGuardHome.yaml"
 			fi
 		fi
 	fi
 fi
+
+# Validate configuration integrity before launching service
+if [ -f "$INSTALL_DIR/AdGuardHome" ] && [ -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
+	echo "${BLUE}Memverifikasi integritas konfigurasi AdGuardHome.yaml...${NC}"
+	if ! "$INSTALL_DIR/AdGuardHome" --check-config -c "$INSTALL_DIR/AdGuardHome.yaml" -w "$INSTALL_DIR" >/dev/null 2>&1; then
+		echo "${YELLOW}[!] Format AdGuardHome.yaml tidak valid. Memperbaiki dan membuat konfigurasi bersih default...${NC}"
+		if [ -f "$INSTALL_DIR/AdGuardHome.yaml.bak" ] && "$INSTALL_DIR/AdGuardHome" --check-config -c "$INSTALL_DIR/AdGuardHome.yaml.bak" -w "$INSTALL_DIR" >/dev/null 2>&1; then
+			cp "$INSTALL_DIR/AdGuardHome.yaml.bak" "$INSTALL_DIR/AdGuardHome.yaml"
+			echo "${GREEN}[✓] Berhasil memulihkan konfigurasi dari backup.${NC}"
+		else
+			cat << 'EOF' > "$INSTALL_DIR/AdGuardHome.yaml"
+http:
+  address: 0.0.0.0:80
+  session_ttl: 720h
+users:
+  - name: admin
+    password: "$2a$10$AUqri/85mab2pjf6u7uKSuVP7Uqtv3aDHq0yZMKOHElbCQ5J7AmQy"
+dns:
+  bind_hosts:
+    - 0.0.0.0
+  port: 53
+  upstream_dns:
+    - tls://dns.alidns.com
+    - https://dns.alidns.com/dns-query
+    - tls://one.one.one.one
+    - https://cloudflare-dns.com/dns-query
+    - tls://ordns.he.net
+    - tls://dns11.quad9.net
+    - tls://dot.pub
+    - tls://adblock.dns.mullvad.net
+    - https://dns11.quad9.net/dns-query
+    - https://wikimedia-dns.org/dns-query
+  bootstrap_dns:
+    - 1.1.1.1
+    - 8.8.8.8
+    - 9.9.9.11
+    - 223.5.5.5
+    - 2606:4700:4700::1111
+    - 2001:4860:4860::8888
+  cache_size: 4194304
+  cache_enabled: true
+filtering:
+  filtering_enabled: true
+  protection_enabled: true
+schema_version: 34
+EOF
+			echo "${GREEN}[✓] Konfigurasi bersih baru berhasil dipasang.${NC}"
+		fi
+	else
+		echo "${GREEN}[✓] Konfigurasi valid.${NC}"
+	fi
+fi
+
+# Ensure correct file permissions
+chmod 755 "$INSTALL_DIR/AdGuardHome" 2>/dev/null || true
+chmod 644 "$INSTALL_DIR/AdGuardHome.yaml" 2>/dev/null || true
 
 # 7. Restart Service
 echo "${BLUE}[5/5] Memulai kembali service DNS SERVER BRST...${NC}"
