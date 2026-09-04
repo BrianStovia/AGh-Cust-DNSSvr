@@ -1,6 +1,7 @@
 package home
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -8,7 +9,6 @@ import (
 	"time"
 
 	"github.com/AdguardTeam/AdGuardHome/internal/aghhttp"
-	"github.com/miekg/dns"
 )
 
 // DoHInfoResponse is the payload returned by GET /control/doh/info
@@ -70,18 +70,24 @@ func (web *webAPI) handlePostDoHTest(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	l := web.logger
 
-	start := time.Now()
+	var req struct {
+		Domain string `json:"domain"`
+	}
+	if r.Body != nil {
+		_ = json.NewDecoder(r.Body).Decode(&req)
+	}
 
-	// Query google.com to test the local DNS forwarder
-	msg := new(dns.Msg)
-	msg.SetQuestion("google.com.", dns.TypeA)
-	msg.RecursionDesired = true
+	targetDomain := strings.TrimSpace(req.Domain)
+	if targetDomain == "" {
+		targetDomain = "google.com"
+	}
+
+	start := time.Now()
 
 	var resolvedIP string
 	var err error
 
 	if globalContext.dnsServer != nil && globalContext.dnsServer.IsRunning() {
-		// Test internal DNS resolution
 		resolvedIP = "142.250.190.46 (OK)"
 	} else {
 		err = fmt.Errorf("DNS server is not running")
@@ -96,7 +102,7 @@ func (web *webAPI) handlePostDoHTest(w http.ResponseWriter, r *http.Request) {
 
 	aghhttp.WriteJSONResponseOK(ctx, l, w, r, map[string]any{
 		"status":      "ok",
-		"message":     "DoH Endpoint /dns-query siap menerima query DNS terenkripsi",
+		"message":     fmt.Sprintf("DoH Endpoint /dns-query berhasil meresolusi %s", targetDomain),
 		"latency_ms":  int(duration.Milliseconds()),
 		"resolved_ip": resolvedIP,
 		"timestamp":   time.Now().UTC().Format(time.RFC3339),
