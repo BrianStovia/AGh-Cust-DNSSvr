@@ -75,9 +75,15 @@ if [ "$UPDATED" -eq 0 ]; then
 	*) ARCH_TYPE="amd64" ;;
 	esac
 
-	DOWNLOAD_URL="https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_linux_${ARCH_TYPE}?v=$(date +%s)"
+	LATEST_COMMIT="$(curl -sSL -H 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/BrianStovia/AGh-Cust-DNSSvr/commits/main 2>/dev/null | grep '"sha":' | head -n 1 | cut -d '"' -f 4 || echo '')"
+	if [ -z "$LATEST_COMMIT" ]; then
+		LATEST_COMMIT="main"
+	fi
+
+	DOWNLOAD_URL="https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/${LATEST_COMMIT}/dist/AdGuardHome_linux_${ARCH_TYPE}"
 	TMP_BIN="/tmp/AdGuardHome_custom_update_$$"
 
+	echo "${BLUE}Mengunduh biner AdGuard Home commit [${LATEST_COMMIT}]...${NC}"
 	if command -v curl >/dev/null 2>&1; then
 		curl -sSL -H 'Cache-Control: no-cache' "$DOWNLOAD_URL" -o "$TMP_BIN"
 	elif command -v wget >/dev/null 2>&1; then
