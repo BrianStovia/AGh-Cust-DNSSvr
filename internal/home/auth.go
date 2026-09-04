@@ -226,6 +226,46 @@ func (a *auth) addUser(ctx context.Context, u *webUser, password string) (err er
 	return nil
 }
 
+// changePassword verifies the current password and sets a new password for the user.
+func (a *auth) changePassword(
+	ctx context.Context,
+	login aghuser.Login,
+	currentPassword string,
+	newPassword string,
+) (err error) {
+	if a.isGLiNet || a.isUserless {
+		return errors.Error("password change is not supported in this mode")
+	}
+
+	if len(newPassword) < 4 {
+		return errors.Error("password must be at least 4 characters long")
+	}
+
+	user, err := a.users.ByLogin(ctx, login)
+	if err != nil {
+		return fmt.Errorf("retrieving user: %w", err)
+	}
+
+	if user == nil {
+		return errors.Error("user not found")
+	}
+
+	if !user.Password.Authenticate(ctx, currentPassword) {
+		return errors.Error("invalid current password")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("generating password hash: %w", err)
+	}
+
+	user.Password = aghuser.NewDefaultPassword(string(hash))
+
+	a.logger.InfoContext(ctx, "password successfully changed", "user", string(login))
+
+	return nil
+}
+
 // close closes the authentication database.
 func (a *auth) close(ctx context.Context) {
 	err := a.sessions.Close()

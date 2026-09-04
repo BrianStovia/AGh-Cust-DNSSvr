@@ -1454,6 +1454,30 @@ export const getProfile = async (options?: RequestInit): Promise<ProfileInfo> =>
     });
 };
 
+export const getChangePasswordUrl = () => {
+    return `control/profile/change_password`;
+};
+
+export interface ChangePasswordPayload {
+    current_password: string;
+    new_password: string;
+}
+
+/**
+ * @summary Changes password for current logged-in user
+ */
+export const changePassword = async (
+    payload: ChangePasswordPayload,
+    options?: RequestInit,
+): Promise<void> => {
+    return customFetch<void>(getChangePasswordUrl(), {
+        ...options,
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: JSON.stringify(payload),
+    });
+};
+
 export const getMobileConfigDoHUrl = (params: MobileConfigDoHParams) => {
     const normalizedParams = new URLSearchParams();
 

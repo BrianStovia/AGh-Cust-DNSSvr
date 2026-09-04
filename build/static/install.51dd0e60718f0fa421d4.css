@@ -2718,6 +2718,8 @@ h6 {
 .solid-select {
     position: relative;
     width: 100%;
+
+    /* Single-select: value overlay + input share a grid cell. */
 }
 
     .solid-select.solid-select-small {
@@ -3166,8 +3168,6 @@ h6 {
         padding-left: 16px;
     }
 
-    /* Single-select: value overlay + input share a grid cell. */
-
     .solid-select .solid-combobox-single-value-wrapper {
         position: relative;
         display: grid;
@@ -3212,9 +3212,9 @@ h6 {
             color: var(--default-main-text);
             padding: 0 16px;
             outline: none;
-        }
 
-    /* Placeholder shown by the overlay, not the input. */
+            /* Placeholder shown by the overlay, not the input. */
+        }
 
     .solid-select .solid-combobox-single-value-wrapper [data-scope='combobox'][data-part='input']::-moz-placeholder {
                 color: transparent;

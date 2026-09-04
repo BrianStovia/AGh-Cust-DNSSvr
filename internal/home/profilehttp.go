@@ -126,3 +126,60 @@ func (web *webAPI) handlePutProfile(w http.ResponseWriter, r *http.Request) {
 
 	aghhttp.OK(ctx, l, w)
 }
+
+// changePasswordJSON is the request body for changing user password.
+type changePasswordJSON struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+// handlePutChangePassword is the handler for PUT /control/profile/change_password endpoint.
+func (web *webAPI) handlePutChangePassword(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	l := web.logger
+
+	if web.auth.isGLiNet || web.auth.isUserless {
+		aghhttp.ErrorAndLog(ctx, l, r, w, http.StatusBadRequest, "password change is not supported in this mode")
+
+		return
+	}
+
+	u, ok := webUserFromContext(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+
+		return
+	}
+
+	req := &changePasswordJSON{}
+	err := json.NewDecoder(r.Body).Decode(req)
+	if err != nil {
+		aghhttp.ErrorAndLog(ctx, l, r, w, http.StatusBadRequest, "reading req: %s", err)
+
+		return
+	}
+
+	if req.CurrentPassword == "" {
+		aghhttp.ErrorAndLog(ctx, l, r, w, http.StatusBadRequest, "current password cannot be empty")
+
+		return
+	}
+
+	if len(req.NewPassword) < 4 {
+		aghhttp.ErrorAndLog(ctx, l, r, w, http.StatusBadRequest, "new password must be at least 4 characters long")
+
+		return
+	}
+
+	err = web.auth.changePassword(ctx, u.Login, req.CurrentPassword, req.NewPassword)
+	if err != nil {
+		aghhttp.ErrorAndLog(ctx, l, r, w, http.StatusBadRequest, "%s", err)
+
+		return
+	}
+
+	web.confModifier.Apply(ctx)
+
+	aghhttp.OK(ctx, l, w)
+}
+
