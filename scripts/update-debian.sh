@@ -75,13 +75,13 @@ if [ "$UPDATED" -eq 0 ]; then
 	*) ARCH_TYPE="amd64" ;;
 	esac
 
-	DOWNLOAD_URL="https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_linux_${ARCH_TYPE}"
+	DOWNLOAD_URL="https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_linux_${ARCH_TYPE}?v=$(date +%s)"
 	TMP_BIN="/tmp/AdGuardHome_custom_update_$$"
 
 	if command -v curl >/dev/null 2>&1; then
-		curl -sSL "$DOWNLOAD_URL" -o "$TMP_BIN"
+		curl -sSL -H 'Cache-Control: no-cache' "$DOWNLOAD_URL" -o "$TMP_BIN"
 	elif command -v wget >/dev/null 2>&1; then
-		wget -qO "$TMP_BIN" "$DOWNLOAD_URL"
+		wget --no-cache -qO "$TMP_BIN" "$DOWNLOAD_URL"
 	else
 		echo "${RED}Error: curl atau wget dibutuhkan untuk mengunduh biner.${NC}" 1>&2
 		exit 1
