@@ -208,6 +208,8 @@ func (web *webAPI) registerControlHandlers() {
 	web.httpReg.Register(http.MethodGet, "/control/unblock_requests", web.handleGetUnblockRequests)
 	web.httpReg.Register(http.MethodPost, "/control/unblock_requests/approve", web.handlePostApproveUnblockRequest)
 	web.httpReg.Register(http.MethodPost, "/control/unblock_requests/delete", web.handlePostDeleteUnblockRequest)
+	web.httpReg.Register(http.MethodGet, "/control/odoh/status", web.handleGetODoHStatus)
+	web.httpReg.Register(http.MethodPost, "/control/odoh/configure", web.handlePostODoHConfigure)
 
 	mobileConfHandler := newMobileConfigHandler(&mobileConfigHandlerConfig{
 		logger: web.baseLogger,

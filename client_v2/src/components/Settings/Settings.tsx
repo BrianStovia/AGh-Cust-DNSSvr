@@ -28,6 +28,7 @@ import { BrandingConfig } from './BrandingConfig';
 import { AccountConfig } from './AccountConfig';
 import { MaintenanceConfig } from './MaintenanceConfig';
 import { UnblockRequests } from '../UnblockRequests';
+import { ODoHConfig } from './ODoHConfig';
 import {
     getRetentionSummary,
     getSafeSearchProviderTitle,
@@ -169,6 +170,8 @@ export const Settings = () => {
                             <MaintenanceConfig />
 
                             <UnblockRequests />
+
+                            <ODoHConfig />
 
                             <h2
                                 id="filtering"
