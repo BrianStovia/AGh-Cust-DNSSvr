@@ -26,6 +26,7 @@ import { SafeSearchModal } from './SafeSearchModal';
 import { IgnoredDomainsModal } from './IgnoredDomainsModal';
 import { BrandingConfig } from './BrandingConfig';
 import { AccountConfig } from './AccountConfig';
+import { MaintenanceConfig } from './MaintenanceConfig';
 import {
     getRetentionSummary,
     getSafeSearchProviderTitle,
@@ -163,6 +164,8 @@ export const Settings = () => {
                             <BrandingConfig />
 
                             <AccountConfig />
+
+                            <MaintenanceConfig />
 
                             <h2
                                 id="filtering"

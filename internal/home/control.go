@@ -203,6 +203,8 @@ func (web *webAPI) registerControlHandlers() {
 	web.httpReg.Register(http.MethodGet, "/control/profile", web.handleGetProfile)
 	web.httpReg.Register(http.MethodPut, "/control/profile/update", web.handlePutProfile)
 	web.httpReg.Register(http.MethodPut, "/control/profile/change_password", web.handlePutChangePassword)
+	web.httpReg.Register(http.MethodPost, "/control/maintenance/optimize", web.handlePostMaintenanceOptimize)
+	web.httpReg.Register(http.MethodGet, "/control/stats/geo_upstream", web.handleGetGeoUpstreams)
 
 	mobileConfHandler := newMobileConfigHandler(&mobileConfigHandlerConfig{
 		logger: web.baseLogger,

@@ -293,6 +293,7 @@ func newWebAPI(ctx context.Context, conf *webAPIConfig) (w *webAPI) {
 		w.registerInstallHandlers()
 	} else {
 		w.registerControlHandlers()
+		w.startMaintenanceScheduler(ctx)
 	}
 
 	w.httpsServer.logger = conf.baseLogger.With(slogutil.KeyPrefix, "https_server")

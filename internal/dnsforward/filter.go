@@ -54,6 +54,18 @@ func (s *Server) filterDNSRequest(
 		l.DebugContext(ctx, "host is filtered", "reason", res.Reason)
 		pctx.Res = s.genDNSFilterMessage(ctx, l, pctx, res)
 		checkReason = false
+	} else if dctx.protectionEnabled {
+		if suspicious, reason := isDNSTunneling(host, q.Qtype); suspicious {
+			l.WarnContext(ctx, "blocked suspicious DNS tunneling attempt",
+				"host", host,
+				"reason", reason,
+				"client_ip", pctx.Addr.Addr().String(),
+			)
+			res.IsFiltered = true
+			res.Reason = filtering.FilteredBlockList
+			pctx.Res = s.genDNSFilterMessage(ctx, l, pctx, res)
+			checkReason = false
+		}
 	}
 
 	if !checkReason {

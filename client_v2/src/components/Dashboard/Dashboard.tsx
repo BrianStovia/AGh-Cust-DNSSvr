@@ -16,6 +16,7 @@ import { TopQueriedDomains } from './blocks/TopQueriedDomains';
 import { TopBlockedDomains } from './blocks/TopBlockedDomains';
 import { TopUpstreams } from './blocks/TopUpstreams';
 import { UpstreamAvgTime } from './blocks/UpstreamAvgTime';
+import { WorldMapWidget } from './WorldMapWidget';
 
 import s from './Dashboard.module.pcss';
 
@@ -152,6 +153,8 @@ export const Dashboard = () => {
                         replacedSafebrowsing={statsState.replacedSafebrowsing}
                         replacedParental={statsState.replacedParental}
                     />
+
+                    <WorldMapWidget />
 
                     <Show
                         when={statsState.enabled}

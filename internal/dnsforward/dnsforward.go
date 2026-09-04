@@ -952,3 +952,14 @@ func (s *Server) IsBlockedClient(ip netip.Addr, clientID string) (blocked bool, 
 
 	return blocked, cmp.Or(rule, clientID)
 }
+
+// ClearCache flushes the DNS server's in-memory proxy cache and client cache.
+func (s *Server) ClearCache() {
+	if s.dnsProxy != nil {
+		s.dnsProxy.ClearCache()
+	}
+	if s.conf.ClientsContainer != nil {
+		s.conf.ClientsContainer.ClearUpstreamCache()
+	}
+}
+

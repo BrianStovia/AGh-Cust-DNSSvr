@@ -1,0 +1,103 @@
+.maintenanceContainer {
+    background: var(--default-cards-background, #ffffff);
+    border: 1px solid var(--default-item-divider, rgba(255, 255, 255, 0.1));
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.titleArea {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.badge {
+    background: rgba(168, 85, 247, 0.15);
+    color: #a855f7;
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--default-main-text, #0d1f38);
+    margin: 0;
+}
+
+.desc {
+    color: var(--default-description-text, #2a5080);
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.statCard {
+    padding: 16px;
+    background: rgba(13, 132, 248, 0.04);
+    border: 1px solid var(--default-item-divider, rgba(255, 255, 255, 0.1));
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.statLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--default-description-text, #2a5080);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.statValue {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--brst-primary-50, #0d84f8);
+}
+
+.autoBanner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 8px;
+    font-size: 13px;
+    color: #10b981;
+    margin-bottom: 20px;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}

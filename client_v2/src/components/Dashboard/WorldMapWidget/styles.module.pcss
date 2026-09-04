@@ -1,0 +1,182 @@
+.mapWidgetContainer {
+    background: var(--default-cards-background, #ffffff);
+    border: 1px solid var(--default-item-divider, rgba(255, 255, 255, 0.1));
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.mapHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.titleArea {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.badge {
+    background: rgba(13, 132, 248, 0.15);
+    color: var(--brst-primary-50, #0d84f8);
+    border: 1px solid rgba(13, 132, 248, 0.35);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--default-main-text, #0d1f38);
+    margin: 0;
+}
+
+.mapWrapper {
+    position: relative;
+    width: 100%;
+    height: 280px;
+    background: #040812;
+    border: 1px solid rgba(13, 132, 248, 0.25);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+.worldSvg {
+    width: 100%;
+    height: 100%;
+    opacity: 0.45;
+}
+
+.node {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    z-index: 10;
+}
+
+.pulseDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #00d4ef;
+    box-shadow: 0 0 10px #00d4ef;
+    position: relative;
+}
+
+.pulseRing {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #00d4ef;
+    animation: ripple 2s infinite ease-out;
+    opacity: 0.7;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0.6);
+        opacity: 0.9;
+    }
+    100% {
+        transform: scale(2.4);
+        opacity: 0;
+    }
+}
+
+.nodeLabel {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(6, 9, 15, 0.9);
+    border: 1px solid rgba(13, 132, 248, 0.4);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #ffffff;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* ── Table Grid of Upstream Nodes ── */
+.upstreamGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.upstreamCard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(13, 132, 248, 0.03);
+    border: 1px solid var(--default-item-divider, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.upstreamCard:hover {
+    border-color: var(--brst-primary-50, #0d84f8);
+    background: rgba(13, 132, 248, 0.08);
+}
+
+.serverMeta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.serverName {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--default-main-text, #0d1f38);
+}
+
+.serverCountry {
+    font-size: 11px;
+    color: var(--default-description-text, #2a5080);
+}
+
+.latencyBadge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 12px;
+}
+
+.fast {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.normal {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.global {
+    background: rgba(13, 132, 248, 0.15);
+    color: var(--brst-primary-50, #0d84f8);
+    border: 1px solid rgba(13, 132, 248, 0.3);
+}
