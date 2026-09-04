@@ -212,6 +212,9 @@ func (web *webAPI) registerControlHandlers() {
 	web.httpReg.Register(http.MethodPost, "/control/odoh/configure", web.handlePostODoHConfigure)
 	web.httpReg.Register(http.MethodGet, "/control/doh/info", web.handleGetDoHInfo)
 	web.httpReg.Register(http.MethodPost, "/control/doh/test", web.handlePostDoHTest)
+	web.httpReg.Register(http.MethodGet, "/control/rebind/status", web.handleGetRebindStatus)
+	web.httpReg.Register(http.MethodPost, "/control/rebind/config", web.handlePostRebindConfig)
+	web.httpReg.Register(http.MethodPost, "/control/rebind/clear_stats", web.handlePostRebindClearStats)
 
 	mobileConfHandler := newMobileConfigHandler(&mobileConfigHandlerConfig{
 		logger: web.baseLogger,

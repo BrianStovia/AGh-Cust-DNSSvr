@@ -1,0 +1,420 @@
+.container {
+    background: var(--color-bg-secondary, #111827);
+    border: 1px solid var(--color-border-primary, #374151);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--color-border-primary, #374151);
+    gap: 16px;
+}
+
+.titleGroup {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.iconBadge {
+    font-size: 28px;
+    line-height: 1;
+    padding: 10px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 12px;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text-primary, #f9fafb);
+    margin: 0 0 4px 0;
+}
+
+.subtitle {
+    font-size: 13px;
+    color: var(--color-text-secondary, #9ca3af);
+    margin: 0;
+    line-height: 1.5;
+    max-width: 650px;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.badgeActive {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #34d399;
+}
+
+.badgeInactive {
+    background: rgba(107, 114, 128, 0.15);
+    border: 1px solid rgba(107, 114, 128, 0.3);
+    color: #9ca3af;
+}
+
+.badgeDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    display: inline-block;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.statCard {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--color-border-primary, #374151);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.statLabel {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary, #9ca3af);
+}
+
+.statValue {
+    font-size: 24px;
+    font-weight: 800;
+    color: #60a5fa;
+}
+
+.statValueHighlight {
+    font-size: 16px;
+    font-weight: 700;
+    color: #34d399;
+}
+
+.statDanger {
+    color: #f87171 !important;
+}
+
+.statDesc {
+    font-size: 11px;
+    color: var(--color-text-secondary, #9ca3af);
+    margin-top: 4px;
+}
+
+.controlSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--color-border-primary, #374151);
+    border-radius: 12px;
+}
+
+.toggleRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.checkbox {
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+    accent-color: #10b981;
+    cursor: pointer;
+}
+
+.toggleContent {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.toggleTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary, #f9fafb);
+}
+
+.toggleDesc {
+    font-size: 12px;
+    color: var(--color-text-secondary, #9ca3af);
+    line-height: 1.4;
+}
+
+.whitelistSection {
+    margin-bottom: 24px;
+}
+
+.sectionHeader {
+    margin-bottom: 12px;
+}
+
+.sectionTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text-primary, #f9fafb);
+    margin: 0 0 4px 0;
+}
+
+.sectionSubtitle {
+    font-size: 12px;
+    color: var(--color-text-secondary, #9ca3af);
+}
+
+.chipsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+    min-height: 36px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: monospace;
+    color: #93c5fd;
+}
+
+.chipText {
+    font-weight: 600;
+}
+
+.chipRemove {
+    background: none;
+    border: none;
+    color: #93c5fd;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.chipRemove:hover {
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.addDomainForm {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--color-border-primary, #374151);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--color-text-primary, #f9fafb);
+    outline: none;
+}
+
+.input:focus {
+    border-color: #3b82f6;
+}
+
+.btnAdd {
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btnAdd:hover:not(:disabled) {
+    background: #1d4ed8;
+}
+
+.btnAdd:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.quickPresets {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.presetLabel {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--color-text-secondary, #9ca3af);
+}
+
+.btnPreset {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--color-border-primary, #374151);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: monospace;
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnPreset:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: #3b82f6;
+    color: #93c5fd;
+}
+
+.attacksSection {
+    margin-bottom: 24px;
+    padding: 16px;
+    background: rgba(239, 68, 68, 0.04);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 12px;
+}
+
+.attacksHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.btnClear {
+    background: none;
+    border: 1px solid var(--color-border-primary, #374151);
+    color: var(--color-text-secondary, #9ca3af);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.btnClear:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+}
+
+.tableWrapper {
+    overflow-x: auto;
+}
+
+.attackTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.attackTable th {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--color-border-primary, #374151);
+    color: var(--color-text-secondary, #9ca3af);
+    font-weight: 600;
+}
+
+.attackTable td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--color-text-primary, #f9fafb);
+}
+
+.tdTime {
+    font-family: monospace;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+.tdDomain {
+    font-weight: 600;
+    color: #f87171;
+    font-family: monospace;
+}
+
+.tdClient, .tdTargetIP {
+    font-family: monospace;
+    color: #cbd5e1;
+}
+
+.actionBadge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 4px;
+    color: #fca5a5;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btnSave {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    transition: all 0.2s;
+}
+
+.btnSave:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+    transform: translateY(-1px);
+}
+
+.btnSave:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

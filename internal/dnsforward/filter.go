@@ -147,15 +147,41 @@ func (s *Server) filterDNSResponse(
 
 			res, err = s.checkHostRules(host, rrtype, setts)
 		case *dns.A:
-			host = a.A.String()
-			rrtype = dns.TypeA
-
-			res, err = s.checkHostRules(host, rrtype, setts)
+			qName := strings.TrimSuffix(pctx.Req.Question[0].Name, ".")
+			clientIP := pctx.Addr.Addr().String()
+			if CheckDNSRebinding(qName, a.A, clientIP) {
+				l.WarnContext(ctx, "blocked DNS rebinding attack attempt",
+					"domain", qName,
+					"target_private_ip", a.A.String(),
+					"client_ip", clientIP,
+				)
+				res = &filtering.Result{
+					IsFiltered: true,
+					Reason:     filtering.FilteredBlockList,
+				}
+			} else {
+				host = a.A.String()
+				rrtype = dns.TypeA
+				res, err = s.checkHostRules(host, rrtype, setts)
+			}
 		case *dns.AAAA:
-			host = a.AAAA.String()
-			rrtype = dns.TypeAAAA
-
-			res, err = s.checkHostRules(host, rrtype, setts)
+			qName := strings.TrimSuffix(pctx.Req.Question[0].Name, ".")
+			clientIP := pctx.Addr.Addr().String()
+			if CheckDNSRebinding(qName, a.AAAA, clientIP) {
+				l.WarnContext(ctx, "blocked DNS rebinding attack attempt",
+					"domain", qName,
+					"target_private_ip", a.AAAA.String(),
+					"client_ip", clientIP,
+				)
+				res = &filtering.Result{
+					IsFiltered: true,
+					Reason:     filtering.FilteredBlockList,
+				}
+			} else {
+				host = a.AAAA.String()
+				rrtype = dns.TypeAAAA
+				res, err = s.checkHostRules(host, rrtype, setts)
+			}
 		case *dns.HTTPS:
 			res, err = s.filterHTTPSRecords(a, setts)
 		default:

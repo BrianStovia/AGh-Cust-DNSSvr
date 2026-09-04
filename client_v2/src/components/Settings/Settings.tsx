@@ -30,6 +30,7 @@ import { MaintenanceConfig } from './MaintenanceConfig';
 import { UnblockRequests } from '../UnblockRequests';
 import { ODoHConfig } from './ODoHConfig';
 import { DoHHubConfig } from './DoHHubConfig';
+import { AntiRebindConfig } from './AntiRebindConfig';
 import {
     getRetentionSummary,
     getSafeSearchProviderTitle,
@@ -175,6 +176,8 @@ export const Settings = () => {
                             <ODoHConfig />
 
                             <DoHHubConfig />
+
+                            <AntiRebindConfig />
 
                             <h2
                                 id="filtering"
