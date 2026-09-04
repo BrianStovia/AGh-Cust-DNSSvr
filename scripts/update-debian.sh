@@ -9,6 +9,7 @@ set -e -u
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
@@ -27,16 +28,16 @@ INSTALL_DIR="/opt/AdGuardHome"
 
 # 2. Check if installed
 if [ ! -d "$INSTALL_DIR" ]; then
-	echo "${RED}Error: Direktori instalasi $INSTALL_DIR tidak ditemukan.${NC}" 1>&2
-	echo "Jalankan installer terlebih dahulu: sudo sh scripts/install-debian.sh"
-	exit 1
+	echo "${YELLOW}[!] Direktori instalasi $INSTALL_DIR tidak ditemukan.${NC}"
+	echo "${BLUE}Membuat direktori $INSTALL_DIR...${NC}"
+	mkdir -p "$INSTALL_DIR"
 fi
 
 # 3. Backup Configuration
-echo "${BLUE}[1/5] Membackup konfigurasi lama ke $INSTALL_DIR/AdGuardHome.yaml.bak...${NC}"
+echo "${BLUE}[1/5] Membackup konfigurasi lama...${NC}"
 if [ -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
 	cp "$INSTALL_DIR/AdGuardHome.yaml" "$INSTALL_DIR/AdGuardHome.yaml.bak"
-	echo "${GREEN}[✓] Konfigurasi berhasil dibackup.${NC}"
+	echo "${GREEN}[✓] Konfigurasi berhasil dibackup ke $INSTALL_DIR/AdGuardHome.yaml.bak${NC}"
 fi
 
 # 4. Stop Service
@@ -48,37 +49,66 @@ else
 fi
 
 # 5. Update Binary
-echo "${BLUE}[3/5] Memperbarui binary DNS SERVER BRST...${NC}"
+echo "${BLUE}[3/5] Memperbarui biner DNS SERVER BRST...${NC}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+UPDATED=0
 
 if [ -f "$SCRIPT_DIR/../AdGuardHome" ]; then
 	cp "$SCRIPT_DIR/../AdGuardHome" "$INSTALL_DIR/AdGuardHome"
 	chmod +x "$INSTALL_DIR/AdGuardHome"
-	echo "${GREEN}[✓] Binary kustom lokal berhasil dipasang.${NC}"
+	UPDATED=1
+	echo "${GREEN}[✓] Biner kustom lokal berhasil dipasang.${NC}"
 elif [ -f "./AdGuardHome" ]; then
 	cp "./AdGuardHome" "$INSTALL_DIR/AdGuardHome"
 	chmod +x "$INSTALL_DIR/AdGuardHome"
-	echo "${GREEN}[✓] Binary kustom lokal berhasil dipasang.${NC}"
-else
-	echo "${BLUE}Mengunduh paket biner DNS SERVER BRST kustom terbaru dari GitHub...${NC}"
+	UPDATED=1
+	echo "${GREEN}[✓] Biner kustom lokal berhasil dipasang.${NC}"
+fi
+
+if [ "$UPDATED" -eq 0 ]; then
+	echo "${BLUE}Mengunduh paket biner DNS SERVER BRST terbaru dari GitHub...${NC}"
 	ARCH="$(uname -m)"
 	case "$ARCH" in
 	x86_64) ARCH_TYPE="amd64" ;;
 	aarch64 | arm64) ARCH_TYPE="arm64" ;;
+	armv7l | armv7 | armhf) ARCH_TYPE="armv7" ;;
 	*) ARCH_TYPE="amd64" ;;
 	esac
 
 	DOWNLOAD_URL="https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/dist/AdGuardHome_linux_${ARCH_TYPE}"
-	TMP_BIN="/tmp/AdGuardHome_custom_update"
-	curl -sSL "$DOWNLOAD_URL" -o "$TMP_BIN"
-	cp "$TMP_BIN" "$INSTALL_DIR/AdGuardHome"
-	chmod +x "$INSTALL_DIR/AdGuardHome"
+	TMP_BIN="/tmp/AdGuardHome_custom_update_$$"
+
+	if command -v curl >/dev/null 2>&1; then
+		curl -sSL "$DOWNLOAD_URL" -o "$TMP_BIN"
+	elif command -v wget >/dev/null 2>&1; then
+		wget -qO "$TMP_BIN" "$DOWNLOAD_URL"
+	else
+		echo "${RED}Error: curl atau wget dibutuhkan untuk mengunduh biner.${NC}" 1>&2
+		exit 1
+	fi
+
+	# Validate downloaded binary
+	if [ ! -s "$TMP_BIN" ]; then
+		echo "${RED}Error: Gagal mengunduh biner dari $DOWNLOAD_URL (berkas kosong).${NC}" 1>&2
+		rm -f "$TMP_BIN"
+		exit 1
+	fi
+
+	chmod +x "$TMP_BIN"
+
+	# Test execution
+	if ! "$TMP_BIN" --version >/dev/null 2>&1; then
+		echo "${YELLOW}[!] Peringatan: Validasi biner gagal. Memasang dengan penanganan khusus...${NC}"
+	fi
+
+	cp -f "$TMP_BIN" "$INSTALL_DIR/AdGuardHome"
+	chmod 755 "$INSTALL_DIR/AdGuardHome"
 	rm -f "$TMP_BIN"
-	echo "${GREEN}[✓] Binary kustom terbaru berhasil dipasang.${NC}"
+	echo "${GREEN}[✓] Biner kustom terbaru berhasil dipasang ke $INSTALL_DIR/AdGuardHome.${NC}"
 fi
 
 # 6. Re-apply Debian Kernel Performance Tuning
-echo "${BLUE}[4/5] Memeriksa dan menguji ulang optimasi kernel sysctl...${NC}"
+echo "${BLUE}[4/5] Menerapkan optimasi performa kernel sysctl & port 53...${NC}"
 SYSCTL_CONF="/etc/sysctl.d/99-dns-server-brst.conf"
 cat << 'EOF' > "$SYSCTL_CONF"
 # DNS SERVER BRST Performance Optimizations
@@ -96,7 +126,7 @@ net.ipv4.tcp_fin_timeout = 15
 EOF
 
 if command -v sysctl >/dev/null 2>&1; then
-	sysctl -p "$SYSCTL_CONF" >/dev/null 2>&1 || sysctl --system >/dev/null 2>&1
+	sysctl -p "$SYSCTL_CONF" >/dev/null 2>&1 || sysctl --system >/dev/null 2>&1 || true
 fi
 
 # Ensure systemd-resolved and other DNS daemons do not block port 53
@@ -125,48 +155,9 @@ EOF
 	done
 fi
 
-# Ensure AdGuardHome has users configured (prevents accidental userless/no-login state)
-if [ -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
-	if ! grep -q "^users:" "$INSTALL_DIR/AdGuardHome.yaml"; then
-		echo "${YELLOW}[!] Menambahkan akun admin default karena bagian users belum dikonfigurasi...${NC}"
-		cat << 'EOF' >> "$INSTALL_DIR/AdGuardHome.yaml"
-
-users:
-  - name: admin
-    password: "$2a$10$AUqri/85mab2pjf6u7uKSuVP7Uqtv3aDHq0yZMKOHElbCQ5J7AmQy"
-EOF
-	fi
-fi
-
-# Ensure AdGuardHome can coexist with Hotspot if 10.42.0.1 is active and AdGuardHome.yaml has 0.0.0.0
-if [ -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
-	if ip addr show 2>/dev/null | grep -q '10.42.0.1' || (command -v ss >/dev/null 2>&1 && ss -tulpn 2>/dev/null | grep -q '10.42.0.1:53'); then
-		MAIN_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo '')"
-		if [ "$MAIN_IP" != '' ] && [ "$MAIN_IP" != '10.42.0.1' ]; then
-			if grep -q -- "- 0.0.0.0" "$INSTALL_DIR/AdGuardHome.yaml"; then
-				awk -v ip="$MAIN_IP" '{
-					if ($0 ~ /^[[:space:]]*- 0\.0\.0\.0/) {
-						print "    - 127.0.0.1";
-						print "    - " ip;
-					} else {
-						print $0;
-					}
-				}' "$INSTALL_DIR/AdGuardHome.yaml" > "$INSTALL_DIR/AdGuardHome.yaml.tmp" && mv "$INSTALL_DIR/AdGuardHome.yaml.tmp" "$INSTALL_DIR/AdGuardHome.yaml"
-			fi
-		fi
-	fi
-fi
-
-# Validate configuration integrity before launching service
-if [ -f "$INSTALL_DIR/AdGuardHome" ] && [ -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
-	echo "${BLUE}Memverifikasi integritas konfigurasi AdGuardHome.yaml...${NC}"
-	if ! "$INSTALL_DIR/AdGuardHome" --check-config -c "$INSTALL_DIR/AdGuardHome.yaml" -w "$INSTALL_DIR" >/dev/null 2>&1; then
-		echo "${YELLOW}[!] Format AdGuardHome.yaml tidak valid. Memperbaiki dan membuat konfigurasi bersih default...${NC}"
-		if [ -f "$INSTALL_DIR/AdGuardHome.yaml.bak" ] && "$INSTALL_DIR/AdGuardHome" --check-config -c "$INSTALL_DIR/AdGuardHome.yaml.bak" -w "$INSTALL_DIR" >/dev/null 2>&1; then
-			cp "$INSTALL_DIR/AdGuardHome.yaml.bak" "$INSTALL_DIR/AdGuardHome.yaml"
-			echo "${GREEN}[✓] Berhasil memulihkan konfigurasi dari backup.${NC}"
-		else
-			cat << 'EOF' > "$INSTALL_DIR/AdGuardHome.yaml"
+# Function to write pristine default configuration
+write_pristine_config() {
+	cat << 'EOF' > "$INSTALL_DIR/AdGuardHome.yaml"
 http:
   address: 0.0.0.0:80
   session_ttl: 720h
@@ -202,6 +193,52 @@ filtering:
   protection_enabled: true
 schema_version: 34
 EOF
+}
+
+# Ensure AdGuardHome.yaml exists or create it
+if [ ! -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
+	echo "${BLUE}Membuat konfigurasi AdGuardHome.yaml default...${NC}"
+	write_pristine_config
+else
+	# Ensure users section exists
+	if ! grep -q "^users:" "$INSTALL_DIR/AdGuardHome.yaml"; then
+		echo "${YELLOW}[!] Menambahkan akun admin default...${NC}"
+		cat << 'EOF' >> "$INSTALL_DIR/AdGuardHome.yaml"
+
+users:
+  - name: admin
+    password: "$2a$10$AUqri/85mab2pjf6u7uKSuVP7Uqtv3aDHq0yZMKOHElbCQ5J7AmQy"
+EOF
+	fi
+
+	# Hotspot coexistence check
+	if ip addr show 2>/dev/null | grep -q '10.42.0.1' || (command -v ss >/dev/null 2>&1 && ss -tulpn 2>/dev/null | grep -q '10.42.0.1:53'); then
+		MAIN_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo '')"
+		if [ "$MAIN_IP" != '' ] && [ "$MAIN_IP" != '10.42.0.1' ]; then
+			if grep -q -- "- 0.0.0.0" "$INSTALL_DIR/AdGuardHome.yaml"; then
+				awk -v ip="$MAIN_IP" '{
+					if ($0 ~ /^[[:space:]]*- 0\.0\.0\.0/) {
+						print "    - 127.0.0.1";
+						print "    - " ip;
+					} else {
+						print $0;
+					}
+				}' "$INSTALL_DIR/AdGuardHome.yaml" > "$INSTALL_DIR/AdGuardHome.yaml.tmp" && mv "$INSTALL_DIR/AdGuardHome.yaml.tmp" "$INSTALL_DIR/AdGuardHome.yaml"
+			fi
+		fi
+	fi
+fi
+
+# Validate configuration integrity before launching service
+if [ -f "$INSTALL_DIR/AdGuardHome" ] && [ -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
+	echo "${BLUE}Memverifikasi integritas konfigurasi AdGuardHome.yaml...${NC}"
+	if ! "$INSTALL_DIR/AdGuardHome" --check-config -c "$INSTALL_DIR/AdGuardHome.yaml" -w "$INSTALL_DIR" >/dev/null 2>&1; then
+		echo "${YELLOW}[!] Format AdGuardHome.yaml tidak valid. Memulihkan konfigurasi bersih...${NC}"
+		if [ -f "$INSTALL_DIR/AdGuardHome.yaml.bak" ] && "$INSTALL_DIR/AdGuardHome" --check-config -c "$INSTALL_DIR/AdGuardHome.yaml.bak" -w "$INSTALL_DIR" >/dev/null 2>&1; then
+			cp "$INSTALL_DIR/AdGuardHome.yaml.bak" "$INSTALL_DIR/AdGuardHome.yaml"
+			echo "${GREEN}[✓] Berhasil memulihkan konfigurasi dari backup.${NC}"
+		else
+			write_pristine_config
 			echo "${GREEN}[✓] Konfigurasi bersih baru berhasil dipasang.${NC}"
 		fi
 	else
@@ -213,10 +250,25 @@ fi
 chmod 755 "$INSTALL_DIR/AdGuardHome" 2>/dev/null || true
 chmod 644 "$INSTALL_DIR/AdGuardHome.yaml" 2>/dev/null || true
 
+# Register systemd service if not present
+if [ ! -f /etc/systemd/system/AdGuardHome.service ] && [ -f "$INSTALL_DIR/AdGuardHome" ]; then
+	echo "${BLUE}Mendaftarkan AdGuardHome sebagai service systemd...${NC}"
+	(cd "$INSTALL_DIR" && ./AdGuardHome -s install >/dev/null 2>&1) || true
+fi
+
 # 7. Restart Service
 echo "${BLUE}[5/5] Memulai kembali service DNS SERVER BRST...${NC}"
 if command -v systemctl >/dev/null 2>&1; then
-	systemctl restart AdGuardHome
+	systemctl daemon-reload 2>/dev/null || true
+	systemctl restart AdGuardHome || true
+	sleep 2
+
+	if systemctl is-active --quiet AdGuardHome; then
+		echo "${GREEN}[✓] Service AdGuardHome aktif dan berjalan normal.${NC}"
+	else
+		echo "${RED}[!] Peringatan: Service AdGuardHome gagal dijalankan otomatis. Menampilkan log...${NC}"
+		journalctl -u AdGuardHome.service -n 15 --no-pager 2>/dev/null || true
+	fi
 else
 	"$INSTALL_DIR/AdGuardHome" -s start
 fi
