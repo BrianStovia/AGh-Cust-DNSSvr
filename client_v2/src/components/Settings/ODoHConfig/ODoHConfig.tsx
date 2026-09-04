@@ -58,6 +58,7 @@ export const ODoHConfig = () => {
         try {
             await customFetch('control/odoh/configure', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     enabled: enabled(),
                     preset: preset(),
@@ -70,8 +71,10 @@ export const ODoHConfig = () => {
                     ? 'Oblivious DoH (ODoH Relay) berhasil diaktifkan!'
                     : 'Konfigurasi ODoH berhasil disimpan.',
             );
-        } catch {
-            addErrorToast('Gagal menyimpan konfigurasi ODoH.');
+        } catch (err) {
+            addErrorToast({
+                error: err instanceof Error ? err.message : 'Gagal menyimpan konfigurasi ODoH.',
+            });
         } finally {
             setSaving(false);
         }

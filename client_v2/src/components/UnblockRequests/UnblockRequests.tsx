@@ -39,12 +39,15 @@ export const UnblockRequests = () => {
         try {
             await customFetch('control/unblock_requests/approve', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: item.id, domain: item.domain }),
             });
             addSuccessToast(`Domain ${item.domain} berhasil dibuka blokirnya!`);
             loadRequests();
-        } catch {
-            addErrorToast(`Gagal membuka blokir untuk ${item.domain}`);
+        } catch (err) {
+            addErrorToast({
+                error: err instanceof Error ? err.message : `Gagal membuka blokir untuk ${item.domain}`,
+            });
         }
     };
 
@@ -52,12 +55,15 @@ export const UnblockRequests = () => {
         try {
             await customFetch('control/unblock_requests/delete', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id }),
             });
             addSuccessToast('Permintaan dihapus.');
             loadRequests();
-        } catch {
-            addErrorToast('Gagal menghapus permintaan.');
+        } catch (err) {
+            addErrorToast({
+                error: err instanceof Error ? err.message : 'Gagal menghapus permintaan.',
+            });
         }
     };
 
