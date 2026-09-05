@@ -478,7 +478,7 @@ var config = &configuration{
 				"GET /dns-query/{ClientID}",
 				"POST /dns-query/{ClientID}",
 			},
-			InsecureEnabled: false,
+			InsecureEnabled: true,
 		},
 	},
 	DNS: dnsConfig{

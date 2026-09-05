@@ -167,6 +167,8 @@ write_pristine_config() {
 http:
   address: 0.0.0.0:80
   session_ttl: 720h
+  doh:
+    insecure_enabled: true
 users:
   - name: admin
     password: "$2a$10$AUqri/85mab2pjf6u7uKSuVP7Uqtv3aDHq0yZMKOHElbCQ5J7AmQy"
@@ -206,6 +208,17 @@ if [ ! -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
 	echo "${BLUE}Membuat konfigurasi AdGuardHome.yaml default...${NC}"
 	write_pristine_config
 else
+	# Ensure unencrypted DoH is enabled for Cloudflare Tunnel and Reverse Proxies
+	if grep -q "^http:" "$INSTALL_DIR/AdGuardHome.yaml"; then
+		if ! grep -q "insecure_enabled:" "$INSTALL_DIR/AdGuardHome.yaml"; then
+			if grep -q "doh:" "$INSTALL_DIR/AdGuardHome.yaml"; then
+				sed -i '/doh:/a \    insecure_enabled: true' "$INSTALL_DIR/AdGuardHome.yaml" 2>/dev/null || true
+			else
+				sed -i '/^http:/a \  doh:\n    insecure_enabled: true' "$INSTALL_DIR/AdGuardHome.yaml" 2>/dev/null || true
+			fi
+		fi
+	fi
+
 	# Ensure users section exists
 	if ! grep -q "^users:" "$INSTALL_DIR/AdGuardHome.yaml"; then
 		echo "${YELLOW}[!] Menambahkan akun admin default...${NC}"
