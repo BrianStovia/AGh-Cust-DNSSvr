@@ -80,11 +80,9 @@ const (
 // See https://www.ietf.org/archive/id/draft-ietf-add-ddr-06.html.
 const ddrHostFQDN = "_dns.resolver.arpa."
 
-// mozillaFQDN is the domain used to signal the Firefox browser to not use its
-// own DoH server.
-//
-// See https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet.
-const mozillaFQDN = "use-application-dns.net."
+// canaryFQDN is the Canary Domain (RFC 8484) used by Chrome, Opera, Edge, and Firefox
+// to probe DoH support. Must return NOERROR with a valid IP so browsers allow custom DoH.
+const canaryFQDN = "use-application-dns.net."
 
 // healthcheckFQDN is a reserved domain-name used for healthchecking.
 //
@@ -116,6 +114,25 @@ func (s *Server) processInitial(
 	qt := q.Qtype
 	if s.conf.AAAADisabled && qt == dns.TypeAAAA {
 		pctx.Res = s.NewMsgNODATA(pctx.Req)
+
+		return resultCodeFinish
+	}
+
+	if q.Name == canaryFQDN {
+		// Generate an authoritative positive response for Canary probe so Chrome/Opera/Firefox
+		// instantly validate custom DoH without being blocked by upstream resolvers.
+		pctx.Res = s.replyCompressed(pctx.Req)
+		if qt == dns.TypeA || qt == dns.TypeANY {
+			pctx.Res.Answer = append(pctx.Res.Answer, &dns.A{
+				Hdr: dns.RR_Header{
+					Name:   q.Name,
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+					Ttl:    60,
+				},
+				A: net.IPv4(199, 232, 42, 1),
+			})
+		}
 
 		return resultCodeFinish
 	}
