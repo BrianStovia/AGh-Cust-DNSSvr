@@ -120,13 +120,7 @@ func (s *Server) processInitial(
 		return resultCodeFinish
 	}
 
-	if (qt == dns.TypeA || qt == dns.TypeAAAA) && q.Name == mozillaFQDN {
-		if pctx.Proto != proxy.ProtoHTTPS && pctx.Proto != proxy.ProtoQUIC && pctx.Proto != proxy.ProtoTLS {
-			pctx.Res = s.NewMsgNXDOMAIN(pctx.Req)
 
-			return resultCodeFinish
-		}
-	}
 
 	if q.Name == healthcheckFQDN {
 		// Generate a NODATA negative response to make nslookup exit with 0.

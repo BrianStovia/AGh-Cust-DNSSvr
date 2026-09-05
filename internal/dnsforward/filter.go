@@ -35,6 +35,10 @@ func (s *Server) filterDNSRequest(
 	q := req.Question[0]
 	host := strings.TrimSuffix(q.Name, ".")
 
+	if host == "use-application-dns.net" || host == "_dns.resolver.arpa" {
+		return &filtering.Result{Reason: filtering.NotFilteredNotFound}, nil
+	}
+
 	resVal, err := s.dnsFilter.CheckHost(host, q.Qtype, dctx.setts)
 	if err != nil {
 		return nil, fmt.Errorf("checking host %q: %w", host, err)
