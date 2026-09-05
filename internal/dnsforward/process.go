@@ -121,9 +121,11 @@ func (s *Server) processInitial(
 	}
 
 	if (qt == dns.TypeA || qt == dns.TypeAAAA) && q.Name == mozillaFQDN {
-		pctx.Res = s.NewMsgNXDOMAIN(pctx.Req)
+		if pctx.Proto != proxy.ProtoHTTPS && pctx.Proto != proxy.ProtoQUIC && pctx.Proto != proxy.ProtoTLS {
+			pctx.Res = s.NewMsgNXDOMAIN(pctx.Req)
 
-		return resultCodeFinish
+			return resultCodeFinish
+		}
 	}
 
 	if q.Name == healthcheckFQDN {
