@@ -120,8 +120,6 @@ func (s *Server) processInitial(
 		return resultCodeFinish
 	}
 
-
-
 	if q.Name == healthcheckFQDN {
 		// Generate a NODATA negative response to make nslookup exit with 0.
 		pctx.Res = s.replyCompressed(pctx.Req)
