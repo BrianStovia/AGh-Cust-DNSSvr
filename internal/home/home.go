@@ -14,6 +14,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"slices"
 	"strconv"
 	"sync"
@@ -74,6 +75,15 @@ var globalContext homeContext
 // Main is the entry point
 func Main(clientBuildFS fs.FS) {
 	ctx := context.Background()
+
+	// Optimize Go runtime memory footprint for Linux & low-resource VPS:
+	// Set GC target to 50% growth (default 100%) to trigger GC earlier.
+	debug.SetGCPercent(50)
+
+	// Set soft memory limit to 250MB if not explicitly overridden by GOMEMLIMIT
+	if os.Getenv("GOMEMLIMIT") == "" {
+		debug.SetMemoryLimit(250 * 1024 * 1024)
+	}
 
 	initCmdLineOpts()
 

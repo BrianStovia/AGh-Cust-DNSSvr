@@ -52,21 +52,39 @@ func performMaintenance(ctx context.Context) (res maintenanceResultJSON) {
 	}
 }
 
-// startMaintenanceScheduler runs periodic automatic maintenance every 24 hours.
+// startMaintenanceScheduler runs periodic automatic maintenance every 5 minutes
+// with an initial post-boot cleanup after 15 seconds to reclaim startup memory.
 func (web *webAPI) startMaintenanceScheduler(ctx context.Context) {
-	ticker := time.NewTicker(24 * time.Hour)
 	go func() {
+		// Initial post-boot cleanup once filter lists and caches are initialized
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(15 * time.Second):
+			res := performMaintenance(ctx)
+			web.logger.InfoContext(ctx, "initial post-boot memory cleanup completed",
+				"freed_mb", res.FreedMemoryMB,
+				"alloc_mb", res.AllocatedMB,
+				"sys_mb", res.SysMemoryMB,
+			)
+		}
+
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+
 		for {
 			select {
 			case <-ctx.Done():
-				ticker.Stop()
 				return
 			case <-ticker.C:
 				res := performMaintenance(ctx)
-				web.logger.InfoContext(ctx, "scheduled auto-maintenance completed",
-					"freed_mb", res.FreedMemoryMB,
-					"alloc_mb", res.AllocatedMB,
-				)
+				if res.FreedMemoryMB > 5.0 {
+					web.logger.DebugContext(ctx, "periodic auto-maintenance completed",
+						"freed_mb", res.FreedMemoryMB,
+						"alloc_mb", res.AllocatedMB,
+						"sys_mb", res.SysMemoryMB,
+					)
+				}
 			}
 		}
 	}()
