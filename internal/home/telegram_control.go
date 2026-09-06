@@ -112,8 +112,20 @@ func (web *webAPI) initTelegramCallbacks() {
 			return res.FormatMarkdown()
 		},
 
-		ToggleGameModeFunc: func() string {
-			gamemode.Toggle()
+		ToggleGameModeFunc: func(mode string) string {
+			switch strings.ToLower(strings.TrimSpace(mode)) {
+			case "garena", "ff", "freefire":
+				gamemode.SetFocusMode("garena")
+			case "tencent", "pubg", "pubgm", "hok":
+				gamemode.SetFocusMode("tencent")
+			case "all", "on", "enable":
+				gamemode.SetFocusMode("all")
+				gamemode.SetEnabled(true)
+			case "off", "disable":
+				gamemode.SetEnabled(false)
+			default:
+				gamemode.Toggle()
+			}
 			return gamemode.FormatTelegramMessage()
 		},
 

@@ -46,7 +46,7 @@ type BotCallbacks struct {
 	SetBlockedServiceFunc       func(id string, block bool) error
 	RunSpeedtestFunc            func() string
 	GetDailyReportFunc          func() string
-	ToggleGameModeFunc          func() string
+	ToggleGameModeFunc          func(mode string) string
 	GetGameModeStatusFunc       func() string
 }
 
@@ -659,6 +659,42 @@ func (b *Bot) SendServicesMenu(chatID string) error {
 	return b.sendMessageWithMarkup(chatID, msg, markup)
 }
 
+// BuildGameModeMenu builds the interactive keyboard for Smart Game Mode.
+func (b *Bot) BuildGameModeMenu() (string, *InlineKeyboardMarkup) {
+	b.mu.RLock()
+	callbacks := b.callbacks
+	b.mu.RUnlock()
+
+	var msg string
+	if callbacks.GetGameModeStatusFunc != nil {
+		msg = callbacks.GetGameModeStatusFunc()
+	} else {
+		msg = "🎮 *SMART GAME QoS ACCELERATOR*\n\nPilih mode fokus akselerasi game di bawah:"
+	}
+
+	keyboard := [][]InlineKeyboardButton{
+		{
+			{Text: "🔥 Fokus Garena (FF/AoV)", CallbackData: "cb:gm:garena"},
+			{Text: "🔫 Fokus Tencent (PUBG/HoK)", CallbackData: "cb:gm:tencent"},
+		},
+		{
+			{Text: "🌐 Semua Game (QoS)", CallbackData: "cb:gm:all"},
+			{Text: "🔴 Matikan Game Mode", CallbackData: "cb:gm:off"},
+		},
+		{
+			{Text: "🔙 Kembali ke Menu Utama", CallbackData: "cb:menu"},
+		},
+	}
+
+	return msg, &InlineKeyboardMarkup{InlineKeyboard: keyboard}
+}
+
+// SendGameModeMenu sends the interactive Game Mode QoS menu.
+func (b *Bot) SendGameModeMenu(chatID string) error {
+	msg, markup := b.BuildGameModeMenu()
+	return b.sendMessageWithMarkup(chatID, msg, markup)
+}
+
 func (b *Bot) sendMessageWithMarkup(chatID, text string, replyMarkup any) error {
 	b.mu.RLock()
 	token := b.conf.BotToken
@@ -1236,11 +1272,48 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, messageID int
 		b.answerCallbackQuery(callbackID, "🚀 Menjalankan Speedtest...")
 		b.RunSpeedtestAsync(chatIDStr)
 	case "cb:gamemode":
-		b.answerCallbackQuery(callbackID, "🎮 Mengubah Game Mode QoS...")
-		if callbacks.ToggleGameModeFunc != nil {
-			_ = b.SendMessage(chatIDStr, callbacks.ToggleGameModeFunc())
+		b.answerCallbackQuery(callbackID, "🎮 Membuka Menu Game Mode...")
+		text, markup := b.BuildGameModeMenu()
+		if messageID > 0 {
+			_ = b.EditMessageText(chatID, messageID, text, markup)
 		} else {
-			_ = b.SendMessage(chatIDStr, "🎮 Smart Game Mode QoS diubah.")
+			_ = b.sendMessageWithMarkup(chatIDStr, text, markup)
+		}
+	case "cb:gm:garena":
+		b.answerCallbackQuery(callbackID, "🔥 Fokus Garena (FF/AoV) Aktif!")
+		if callbacks.ToggleGameModeFunc != nil {
+			_ = callbacks.ToggleGameModeFunc("garena")
+		}
+		text, markup := b.BuildGameModeMenu()
+		if messageID > 0 {
+			_ = b.EditMessageText(chatID, messageID, text, markup)
+		}
+	case "cb:gm:tencent":
+		b.answerCallbackQuery(callbackID, "🔫 Fokus Tencent (PUBG/HoK) Aktif!")
+		if callbacks.ToggleGameModeFunc != nil {
+			_ = callbacks.ToggleGameModeFunc("tencent")
+		}
+		text, markup := b.BuildGameModeMenu()
+		if messageID > 0 {
+			_ = b.EditMessageText(chatID, messageID, text, markup)
+		}
+	case "cb:gm:all":
+		b.answerCallbackQuery(callbackID, "🌐 Semua Game QoS Aktif!")
+		if callbacks.ToggleGameModeFunc != nil {
+			_ = callbacks.ToggleGameModeFunc("all")
+		}
+		text, markup := b.BuildGameModeMenu()
+		if messageID > 0 {
+			_ = b.EditMessageText(chatID, messageID, text, markup)
+		}
+	case "cb:gm:off":
+		b.answerCallbackQuery(callbackID, "🔴 Game Mode Dimatikan")
+		if callbacks.ToggleGameModeFunc != nil {
+			_ = callbacks.ToggleGameModeFunc("off")
+		}
+		text, markup := b.BuildGameModeMenu()
+		if messageID > 0 {
+			_ = b.EditMessageText(chatID, messageID, text, markup)
 		}
 	case "cb:daily_report":
 		b.answerCallbackQuery(callbackID, "📊 Memuat Laporan Harian...")
@@ -1386,6 +1459,20 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 			"• `/ping` — Uji responsivitas bot"
 		_ = b.SendMessage(chatIDStr, msg)
 
+	case "/garena", "/ff", "/freefire":
+		if callbacks.ToggleGameModeFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.ToggleGameModeFunc("garena"))
+		} else {
+			_ = b.SendMessage(chatIDStr, "🔥 Mode Gaming Garena (Free Fire & AoV) Diaktifkan!")
+		}
+
+	case "/tencent", "/pubg", "/pubgm", "/hok":
+		if callbacks.ToggleGameModeFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.ToggleGameModeFunc("tencent"))
+		} else {
+			_ = b.SendMessage(chatIDStr, "🔫 Mode Gaming Tencent (PUBG Mobile & HoK) Diaktifkan!")
+		}
+
 	case "/gamemode", "/game", "gamemode", "game", "🎮 game qos mode", "🎮 game mode":
 		if len(parts) > 1 {
 			arg := strings.ToLower(parts[1])
@@ -1395,12 +1482,12 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 				}
 				return
 			}
+			if callbacks.ToggleGameModeFunc != nil {
+				_ = b.SendMessage(chatIDStr, callbacks.ToggleGameModeFunc(arg))
+				return
+			}
 		}
-		if callbacks.ToggleGameModeFunc != nil {
-			_ = b.SendMessage(chatIDStr, callbacks.ToggleGameModeFunc())
-		} else {
-			_ = b.SendMessage(chatIDStr, "🎮 Smart Game Mode QoS diubah.")
-		}
+		_ = b.SendGameModeMenu(chatIDStr)
 
 	case "/speedtest", "/speed", "speedtest", "🚀 speedtest server", "🚀 speedtest":
 		b.RunSpeedtestAsync(chatIDStr)
