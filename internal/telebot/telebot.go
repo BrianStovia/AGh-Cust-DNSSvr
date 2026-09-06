@@ -28,24 +28,47 @@ type Config struct {
 
 // BotCallbacks provides hooks into the AdGuard Home core engine.
 type BotCallbacks struct {
-	GetStatusFunc       func() string
-	UnblockDomainFunc   func(domain string) (string, error)
-	BlockDomainFunc     func(domain string) (string, error)
-	PauseProtectionFunc func(minutes int) error
+	GetStatusFunc        func() string
+	UnblockDomainFunc    func(domain string) (string, error)
+	BlockDomainFunc      func(domain string) (string, error)
+	PauseProtectionFunc  func(minutes int) error
 	ResumeProtectionFunc func() error
-	GetStatsSummaryFunc func() string
+	GetStatsSummaryFunc  func() string
 }
 
 // Status represents the runtime status of the bot.
 type Status struct {
-	Enabled       bool   `json:"enabled"`
-	Connected     bool   `json:"connected"`
-	BotUsername   string `json:"bot_username"`
-	AdminChatID   string `json:"admin_chat_id"`
-	NotifyThreats bool   `json:"notify_threats"`
-	NotifyDDoS    bool   `json:"notify_ddos"`
+	Enabled         bool   `json:"enabled"`
+	Connected       bool   `json:"connected"`
+	BotUsername     string `json:"bot_username"`
+	AdminChatID     string `json:"admin_chat_id"`
+	NotifyThreats   bool   `json:"notify_threats"`
+	NotifyDDoS      bool   `json:"notify_ddos"`
 	TotalAlertsSent uint64 `json:"total_alerts_sent"`
 	LastAlertTime   string `json:"last_alert_time"`
+}
+
+// InlineKeyboardButton represents an interactive button in Telegram.
+type InlineKeyboardButton struct {
+	Text         string `json:"text"`
+	CallbackData string `json:"callback_data"`
+}
+
+// InlineKeyboardMarkup represents rows of interactive buttons.
+type InlineKeyboardMarkup struct {
+	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
+}
+
+// KeyboardButton represents a persistent menu button.
+type KeyboardButton struct {
+	Text string `json:"text"`
+}
+
+// ReplyKeyboardMarkup represents persistent bottom keyboard.
+type ReplyKeyboardMarkup struct {
+	Keyboard        [][]KeyboardButton `json:"keyboard"`
+	ResizeKeyboard  bool               `json:"resize_keyboard"`
+	OneTimeKeyboard bool               `json:"one_time_keyboard"`
 }
 
 // Bot manages the Telegram Bot long-polling and alert dispatching.
@@ -136,10 +159,13 @@ func (b *Bot) Start() error {
 
 	b.logger.Info("Telegram Bot connected successfully", "username", username)
 
+	// Register command menu in Telegram UI
+	_ = b.setMyCommands()
+
 	// Send startup notification if AdminChatID is set
 	if b.conf.AdminChatID != "" {
 		go func() {
-			_ = b.SendMessage(b.conf.AdminChatID, fmt.Sprintf("🛡️ *AdGuard Home Cyber Shield Online!*\n\nBot @%s siap menerima perintah.\nKetik /help untuk panduan perintah.", username))
+			_ = b.SendInteractiveMenu(b.conf.AdminChatID, fmt.Sprintf("🛡️ *AdGuard Home Cyber Shield Online!*\n\nBot @%s siap menerima perintah.\nGunakan menu tombol interaktif di bawah atau ketik perintah.", username))
 		}()
 	}
 
@@ -204,6 +230,32 @@ func (b *Bot) GetConfig() Config {
 
 // SendMessage sends a text message to a specific Telegram chat.
 func (b *Bot) SendMessage(chatID, text string) error {
+	return b.sendMessageWithMarkup(chatID, text, nil)
+}
+
+// SendInteractiveMenu sends a message with inline buttons and reply keyboard.
+func (b *Bot) SendInteractiveMenu(chatID, text string) error {
+	inlineMarkup := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{
+				{Text: "📊 Status Server", CallbackData: "cb:status"},
+				{Text: "📈 Statistik Live", CallbackData: "cb:stats"},
+			},
+			{
+				{Text: "⏸️ Jeda 10 Menit", CallbackData: "cb:pause_10"},
+				{Text: "▶️ Resume Proteksi", CallbackData: "cb:resume"},
+			},
+			{
+				{Text: "🏓 Ping Server", CallbackData: "cb:ping"},
+				{Text: "📖 Panduan Command", CallbackData: "cb:help"},
+			},
+		},
+	}
+
+	return b.sendMessageWithMarkup(chatID, text, inlineMarkup)
+}
+
+func (b *Bot) sendMessageWithMarkup(chatID, text string, replyMarkup any) error {
 	b.mu.RLock()
 	token := b.conf.BotToken
 	b.mu.RUnlock()
@@ -217,6 +269,10 @@ func (b *Bot) SendMessage(chatID, text string) error {
 		"chat_id":    chatID,
 		"text":       text,
 		"parse_mode": "Markdown",
+	}
+
+	if replyMarkup != nil {
+		payload["reply_markup"] = replyMarkup
 	}
 
 	body, err := json.Marshal(payload)
@@ -245,6 +301,74 @@ func (b *Bot) SendMessage(chatID, text string) error {
 	b.mu.Lock()
 	b.lastAlert = time.Now().UTC().Format(time.RFC3339)
 	b.mu.Unlock()
+
+	return nil
+}
+
+func (b *Bot) answerCallbackQuery(callbackID, text string) {
+	b.mu.RLock()
+	token := b.conf.BotToken
+	b.mu.RUnlock()
+
+	if token == "" || callbackID == "" {
+		return
+	}
+
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/answerCallbackQuery", token)
+	payload := map[string]any{
+		"callback_query_id": callbackID,
+		"text":              text,
+		"show_alert":        false,
+	}
+
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL, bytes.NewReader(body))
+	if err == nil {
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := b.httpClient.Do(req)
+		if err == nil {
+			_ = resp.Body.Close()
+		}
+	}
+}
+
+// setMyCommands registers command list in Telegram UI.
+func (b *Bot) setMyCommands() error {
+	b.mu.RLock()
+	token := b.conf.BotToken
+	b.mu.RUnlock()
+
+	if token == "" {
+		return nil
+	}
+
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/setMyCommands", token)
+	payload := map[string]any{
+		"commands": []map[string]string{
+			{"command": "menu", "description": "📱 Buka Menu Tombol Interaktif"},
+			{"command": "status", "description": "📊 Lihat Status Server & RAM"},
+			{"command": "stats", "description": "📈 Ringkasan Statistik DNS"},
+			{"command": "unblock", "description": "✅ Buka Blokir Domain (/unblock nama.com)"},
+			{"command": "block", "description": "🛡️ Masukkan Domain ke Blocklist (/block nama.com)"},
+			{"command": "pause", "description": "⏸️ Jeda Filter 10 Menit (/pause 10)"},
+			{"command": "resume", "description": "▶️ Aktifkan Kembali Proteksi"},
+			{"command": "ping", "description": "🏓 Cek Kecepatan Respon Server"},
+			{"command": "help", "description": "📖 Panduan Bantuan Lengkap"},
+		},
+	}
+
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := b.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
 
 	return nil
 }
@@ -375,6 +499,19 @@ func (b *Bot) pollLoop() {
 					} `json:"chat"`
 					Text string `json:"text"`
 				} `json:"message"`
+				CallbackQuery *struct {
+					ID   string `json:"id"`
+					From struct {
+						ID int64 `json:"id"`
+					} `json:"from"`
+					Message *struct {
+						MessageID int64 `json:"message_id"`
+						Chat      struct {
+							ID int64 `json:"id"`
+						} `json:"chat"`
+					} `json:"message"`
+					Data string `json:"data"`
+				} `json:"callback_query"`
 			} `json:"result"`
 		}
 
@@ -388,10 +525,71 @@ func (b *Bot) pollLoop() {
 
 		for _, update := range updates.Result {
 			offset = update.UpdateID + 1
+
+			// Handle regular text messages
 			if update.Message != nil && update.Message.Text != "" {
 				go b.handleIncomingMessage(update.Message.Chat.ID, update.Message.Text)
 			}
+
+			// Handle inline button clicks (Callback Queries)
+			if update.CallbackQuery != nil && update.CallbackQuery.Data != "" {
+				go b.handleCallbackQuery(update.CallbackQuery.ID, update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Data)
+			}
 		}
+	}
+}
+
+func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, data string) {
+	chatIDStr := strconv.FormatInt(chatID, 10)
+
+	b.mu.RLock()
+	adminChatID := b.conf.AdminChatID
+	callbacks := b.callbacks
+	b.mu.RUnlock()
+
+	if adminChatID != "" && adminChatID != chatIDStr {
+		b.answerCallbackQuery(callbackID, "Akses Ditolak!")
+		return
+	}
+
+	switch data {
+	case "cb:status":
+		b.answerCallbackQuery(callbackID, "Memuat status server...")
+		if callbacks.GetStatusFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.GetStatusFunc())
+		}
+	case "cb:stats":
+		b.answerCallbackQuery(callbackID, "Memuat statistik DNS...")
+		if callbacks.GetStatsSummaryFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.GetStatsSummaryFunc())
+		}
+	case "cb:pause_10":
+		b.answerCallbackQuery(callbackID, "Proteksi dijeda 10 menit")
+		if callbacks.PauseProtectionFunc != nil {
+			_ = callbacks.PauseProtectionFunc(10)
+		}
+		_ = b.SendMessage(chatIDStr, "⏸️ *Proteksi dijeda selama 10 menit.*\nFilter otomatis aktif kembali setelah 10 menit.")
+	case "cb:resume":
+		b.answerCallbackQuery(callbackID, "Proteksi diaktifkan")
+		if callbacks.ResumeProtectionFunc != nil {
+			_ = callbacks.ResumeProtectionFunc()
+		}
+		_ = b.SendMessage(chatIDStr, "▶️ *Proteksi AdGuard Home kembali AKTIF!*")
+	case "cb:ping":
+		b.answerCallbackQuery(callbackID, "Pong! Server responsif")
+		_ = b.SendMessage(chatIDStr, fmt.Sprintf("🏓 *Pong!*\nServer AdGuard Home aktif.\nWaktu: `%s`", time.Now().Format("15:04:05 WIB")))
+	case "cb:help":
+		b.answerCallbackQuery(callbackID, "Membuka panduan")
+		msg := "📖 *Panduan Perintah AdGuard Home Bot*\n\n" +
+			"• `/menu` — Tampilkan menu tombol interaktif\n" +
+			"• `/status` — Status server, RAM, Uptime & Klien\n" +
+			"• `/stats` — Statistik query & top domain\n" +
+			"• `/unblock <domain>` — Buka blokir domain (contoh: `/unblock reddit.com`)\n" +
+			"• `/block <domain>` — Blokir domain (contoh: `/block tiktok.com`)\n" +
+			"• `/pause [menit]` — Jeda filter sementara (contoh: `/pause 15`)\n" +
+			"• `/resume` — Aktifkan kembali filter\n" +
+			"• `/ping` — Uji kecepatan respon server"
+		_ = b.SendMessage(chatIDStr, msg)
 	}
 }
 
@@ -422,9 +620,14 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 	}
 
 	switch cmd {
-	case "/start", "/help":
-		msg := "🤖 *AdGuard Home Bot Controller*\n\n" +
-			"Berikut perintah yang tersedia:\n" +
+	case "/start", "/menu", "menu", "📋 menu":
+		msg := "🤖 *Panel Kontrol Interaktif AdGuard Home*\n\n" +
+			"Pilih menu aksi cepat di bawah atau ketik perintah langsung:"
+		_ = b.SendInteractiveMenu(chatIDStr, msg)
+
+	case "/help", "bantuan", "help":
+		msg := "📖 *Panduan Perintah AdGuard Home Bot*\n\n" +
+			"• `/menu` — Buka menu tombol interaktif\n" +
 			"• `/status` — Lihat status server, RAM, & Uptime\n" +
 			"• `/stats` — Ringkasan query & top domain\n" +
 			"• `/unblock <domain>` — Buka blokir domain seketika\n" +
@@ -434,17 +637,17 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 			"• `/ping` — Uji responsivitas bot"
 		_ = b.SendMessage(chatIDStr, msg)
 
-	case "/ping":
+	case "/ping", "ping", "🏓 ping":
 		_ = b.SendMessage(chatIDStr, fmt.Sprintf("🏓 *Pong!*\nServer AdGuard Home aktif dan responsif.\nWaktu: `%s`", time.Now().Format("15:04:05 WIB")))
 
-	case "/status":
+	case "/status", "status", "📊 status":
 		if callbacks.GetStatusFunc != nil {
 			_ = b.SendMessage(chatIDStr, callbacks.GetStatusFunc())
 		} else {
 			_ = b.SendMessage(chatIDStr, "🟢 *Status:* Server Online & Proteksi Aktif.")
 		}
 
-	case "/stats":
+	case "/stats", "stats", "📈 statistik":
 		if callbacks.GetStatsSummaryFunc != nil {
 			_ = b.SendMessage(chatIDStr, callbacks.GetStatsSummaryFunc())
 		} else {
@@ -485,7 +688,7 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 			_ = b.SendMessage(chatIDStr, fmt.Sprintf("🛡️ *Domain `%s` berhasil ditambahkan ke blocklist.*", target))
 		}
 
-	case "/pause":
+	case "/pause", "pause", "⏸️ jeda filter":
 		mins := 10
 		if len(parts) >= 2 {
 			if parsed, err := strconv.Atoi(parts[1]); err == nil && parsed > 0 {
@@ -495,16 +698,16 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 		if callbacks.PauseProtectionFunc != nil {
 			_ = callbacks.PauseProtectionFunc(mins)
 		}
-		_ = b.SendMessage(chatIDStr, fmt.Sprintf("⏸️ *Proteksi dijeda selama %d menit.*\nFilter akan otomatis menyala kembali setelah timer selesai, atau ketik `/resume`.", mins))
+		_ = b.SendMessage(chatIDStr, fmt.Sprintf("⏸️ *Proteksi dijeda selama %d menit.*\nFilter otomatis aktif kembali setelah timer selesai, atau ketik `/resume`.", mins))
 
-	case "/resume":
+	case "/resume", "resume", "▶️ resume":
 		if callbacks.ResumeProtectionFunc != nil {
 			_ = callbacks.ResumeProtectionFunc()
 		}
 		_ = b.SendMessage(chatIDStr, "▶️ *Proteksi AdGuard Home kembali AKTIF!*")
 
 	default:
-		_ = b.SendMessage(chatIDStr, "❓ Perintah tidak dikenali. Ketik `/help` untuk melihat daftar perintah.")
+		_ = b.SendInteractiveMenu(chatIDStr, fmt.Sprintf("❓ Perintah `%s` tidak dikenali.\n\nGunakan tombol menu di bawah untuk bernavigasi:", text))
 	}
 }
 
