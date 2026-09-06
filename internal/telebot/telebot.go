@@ -34,7 +34,6 @@ type BotCallbacks struct {
 	PauseProtectionFunc  func(minutes int) error
 	ResumeProtectionFunc func() error
 	GetStatsSummaryFunc  func() string
-	TriggerUpdateFunc    func() (string, error)
 }
 
 // Status represents the runtime status of the bot.
@@ -247,10 +246,7 @@ func (b *Bot) SendInteractiveMenu(chatID, text string) error {
 				{Text: "▶️ Resume Proteksi", CallbackData: "cb:resume"},
 			},
 			{
-				{Text: "🚀 Update Server", CallbackData: "cb:update"},
 				{Text: "🏓 Ping Server", CallbackData: "cb:ping"},
-			},
-			{
 				{Text: "📖 Panduan Command", CallbackData: "cb:help"},
 			},
 		},
@@ -352,7 +348,6 @@ func (b *Bot) setMyCommands() error {
 			{"command": "menu", "description": "📱 Buka Menu Tombol Interaktif"},
 			{"command": "status", "description": "📊 Lihat Status Server & RAM"},
 			{"command": "stats", "description": "📈 Ringkasan Statistik DNS"},
-			{"command": "update", "description": "🚀 Update DNS Server ke Versi Terbaru"},
 			{"command": "unblock", "description": "✅ Buka Blokir Domain (/unblock nama.com)"},
 			{"command": "block", "description": "🛡️ Masukkan Domain ke Blocklist (/block nama.com)"},
 			{"command": "pause", "description": "⏸️ Jeda Filter 10 Menit (/pause 10)"},
@@ -583,18 +578,6 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, data string) 
 	case "cb:ping":
 		b.answerCallbackQuery(callbackID, "Pong! Server responsif")
 		_ = b.SendMessage(chatIDStr, fmt.Sprintf("🏓 *Pong!*\nServer AdGuard Home aktif.\nWaktu: `%s`", time.Now().Format("15:04:05 WIB")))
-	case "cb:update", "cb:update_confirm", "cb:update_execute":
-		b.answerCallbackQuery(callbackID, "🚀 Memulai update...")
-		if callbacks.TriggerUpdateFunc != nil {
-			msg, err := callbacks.TriggerUpdateFunc()
-			if err != nil {
-				_ = b.SendMessage(chatIDStr, fmt.Sprintf("❌ *Gagal Update:* %s", err.Error()))
-			} else {
-				_ = b.SendMessage(chatIDStr, msg)
-			}
-		} else {
-			_ = b.SendMessage(chatIDStr, "❌ *Error:* Handler update tidak tersedia pada server ini.")
-		}
 	case "cb:menu":
 		b.answerCallbackQuery(callbackID, "Membuka Menu")
 		_ = b.SendInteractiveMenu(chatIDStr, "🤖 *Panel Kontrol Interaktif AdGuard Home*\n\nPilih aksi di bawah ini:")
@@ -604,7 +587,6 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, data string) 
 			"• `/menu` — Tampilkan menu tombol interaktif\n" +
 			"• `/status` — Status server, RAM, Uptime & Klien\n" +
 			"• `/stats` — Statistik query & top domain\n" +
-			"• `/update` — 🚀 Update server ke versi/commit terbaru dari GitHub\n" +
 			"• `/unblock <domain>` — Buka blokir domain (contoh: `/unblock reddit.com`)\n" +
 			"• `/block <domain>` — Blokir domain (contoh: `/block tiktok.com`)\n" +
 			"• `/pause [menit]` — Jeda filter sementara (contoh: `/pause 15`)\n" +
@@ -651,7 +633,6 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 			"• `/menu` — Buka menu tombol interaktif\n" +
 			"• `/status` — Lihat status server, RAM, & Uptime\n" +
 			"• `/stats` — Ringkasan query & top domain\n" +
-			"• `/update` — 🚀 Update server ke versi/commit terbaru dari GitHub\n" +
 			"• `/unblock <domain>` — Buka blokir domain seketika\n" +
 			"• `/block <domain>` — Masukkan domain ke blocklist\n" +
 			"• `/pause [menit]` — Jeda filter sementara (default 10 menit)\n" +
@@ -661,18 +642,6 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 
 	case "/ping", "ping", "🏓 ping":
 		_ = b.SendMessage(chatIDStr, fmt.Sprintf("🏓 *Pong!*\nServer AdGuard Home aktif dan responsif.\nWaktu: `%s`", time.Now().Format("15:04:05 WIB")))
-
-	case "/update", "update", "🚀 update", "🚀 update server":
-		if callbacks.TriggerUpdateFunc != nil {
-			msg, err := callbacks.TriggerUpdateFunc()
-			if err != nil {
-				_ = b.SendMessage(chatIDStr, fmt.Sprintf("❌ *Gagal Update:* %s", err.Error()))
-			} else {
-				_ = b.SendMessage(chatIDStr, msg)
-			}
-		} else {
-			_ = b.SendMessage(chatIDStr, "❌ *Error:* Handler update tidak tersedia pada server ini.")
-		}
 
 	case "/status", "status", "📊 status":
 		if callbacks.GetStatusFunc != nil {

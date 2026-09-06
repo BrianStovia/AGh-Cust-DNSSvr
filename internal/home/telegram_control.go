@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os/exec"
 	"runtime"
 	"time"
 
@@ -96,26 +95,6 @@ func (web *webAPI) initTelegramCallbacks() {
 			return fmt.Sprintf("📊 *Ringkasan Statistik DNS*\n\n" +
 				"Untuk melihat grafik interaktif dan peta GeoIP, buka web dashboard: https://dns.brianstovia.com",
 			)
-		},
-
-		TriggerUpdateFunc: func() (string, error) {
-			if runtime.GOOS == "windows" {
-				return "Fitur auto-update via bot saat ini dirancang untuk Linux/Debian VPS.", nil
-			}
-
-			go func() {
-				time.Sleep(1500 * time.Millisecond)
-				// Run detached from AdGuardHome cgroup so restarting the service doesn't kill the updater process
-				cmdStr := `if command -v systemd-run >/dev/null 2>&1; then ` +
-					`systemd-run --unit=agh-auto-updater --description="AdGuardHome Auto Updater" --quiet sh -c "$(curl -sSL https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/update-debian.sh)"; ` +
-					`else ` +
-					`nohup sh -c "$(curl -sSL https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/update-debian.sh)" >/tmp/agh_update.log 2>&1 & ` +
-					`fi`
-				cmd := exec.Command("sh", "-c", cmdStr)
-				_ = cmd.Run()
-			}()
-
-			return "🚀 *Proses Update DNS Server Dimulai!*\n\nSedang mengunduh biner terbaru dan memperbarui sistem di latar belakang...\n\n_Bot akan otomatis online kembali setelah service selesai di-restart._", nil
 		},
 	})
 }
