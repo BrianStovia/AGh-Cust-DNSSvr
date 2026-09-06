@@ -223,6 +223,9 @@ func (web *webAPI) registerControlHandlers() {
 	web.httpReg.Register(http.MethodPost, "/control/devices/convert", web.handlePostConvertDevice)
 	web.httpReg.Register(http.MethodGet, "/control/speedtest/run", web.handleGetSpeedtestRun)
 	web.httpReg.Register(http.MethodGet, "/control/speedtest/last", web.handleGetSpeedtestLast)
+	web.httpReg.Register(http.MethodGet, "/control/gamemode/status", web.handleGetGameModeStatus)
+	web.httpReg.Register(http.MethodPost, "/control/gamemode/toggle", web.handlePostGameModeToggle)
+	web.httpReg.Register(http.MethodPost, "/control/gamemode/config", web.handlePostGameModeConfig)
 
 	web.initTelegramCallbacks()
 

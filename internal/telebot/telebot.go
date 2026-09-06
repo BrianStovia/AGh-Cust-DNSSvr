@@ -46,6 +46,8 @@ type BotCallbacks struct {
 	SetBlockedServiceFunc       func(id string, block bool) error
 	RunSpeedtestFunc            func() string
 	GetDailyReportFunc          func() string
+	ToggleGameModeFunc          func() string
+	GetGameModeStatusFunc       func() string
 }
 
 // Status represents the runtime status of the bot.
@@ -261,8 +263,8 @@ func (b *Bot) SendInteractiveMenu(chatID, text string) error {
 				{Text: "🚀 Speedtest Server", CallbackData: "cb:speedtest"},
 			},
 			{
+				{Text: "🎮 Game QoS Mode", CallbackData: "cb:gamemode"},
 				{Text: "📊 Laporan Harian", CallbackData: "cb:daily_report"},
-				{Text: "📱 Setup Guide", CallbackData: "cb:guide"},
 			},
 			{
 				{Text: "🌐 Info Server & IP", CallbackData: "cb:netinfo"},
@@ -273,12 +275,15 @@ func (b *Bot) SendInteractiveMenu(chatID, text string) error {
 				{Text: "🔍 Cek Domain", CallbackData: "cb:lookup_info"},
 			},
 			{
+				{Text: "📱 Setup Guide", CallbackData: "cb:guide"},
+				{Text: "📖 Panduan Command", CallbackData: "cb:help"},
+			},
+			{
 				{Text: "⏸️ Jeda 10 Menit", CallbackData: "cb:pause_10"},
 				{Text: "▶️ Resume Proteksi", CallbackData: "cb:resume"},
 			},
 			{
 				{Text: "🏓 Ping Server", CallbackData: "cb:ping"},
-				{Text: "📖 Panduan Command", CallbackData: "cb:help"},
 			},
 		},
 	}
@@ -797,6 +802,7 @@ func (b *Bot) setMyCommands() error {
 		"commands": []map[string]string{
 			{"command": "menu", "description": "📱 Buka Menu Tombol Interaktif"},
 			{"command": "status", "description": "📊 Lihat Status Server & RAM"},
+			{"command": "gamemode", "description": "🎮 Toggle Smart Game QoS Mode"},
 			{"command": "speedtest", "description": "🚀 Uji Kecepatan Server (Speedtest)"},
 			{"command": "report", "description": "📊 Laporan Harian (Daily Brief)"},
 			{"command": "stats", "description": "📈 Ringkasan Statistik DNS"},
@@ -1229,6 +1235,13 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, messageID int
 	case "cb:speedtest":
 		b.answerCallbackQuery(callbackID, "🚀 Menjalankan Speedtest...")
 		b.RunSpeedtestAsync(chatIDStr)
+	case "cb:gamemode":
+		b.answerCallbackQuery(callbackID, "🎮 Mengubah Game Mode QoS...")
+		if callbacks.ToggleGameModeFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.ToggleGameModeFunc())
+		} else {
+			_ = b.SendMessage(chatIDStr, "🎮 Smart Game Mode QoS diubah.")
+		}
 	case "cb:daily_report":
 		b.answerCallbackQuery(callbackID, "📊 Memuat Laporan Harian...")
 		b.SendDailyReport(chatIDStr)
@@ -1356,6 +1369,7 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 		msg := "📖 *Panduan Perintah AdGuard Home Bot*\n\n" +
 			"• `/menu` — Buka menu tombol interaktif\n" +
 			"• `/status` — Lihat status server, RAM, & Uptime\n" +
+			"• `/gamemode` — 🎮 Toggle Smart Game QoS Mode (Anti-Lag Gaming)\n" +
 			"• `/speedtest` — 🚀 Uji Kecepatan Jaringan Server (Speedtest)\n" +
 			"• `/report` — 📊 Laporan Rekap Harian (Executive Brief)\n" +
 			"• `/stats` — Ringkasan query & top domain\n" +
@@ -1371,6 +1385,22 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 			"• `/resume` — Nyalakan kembali filter adblock\n" +
 			"• `/ping` — Uji responsivitas bot"
 		_ = b.SendMessage(chatIDStr, msg)
+
+	case "/gamemode", "/game", "gamemode", "game", "🎮 game qos mode", "🎮 game mode":
+		if len(parts) > 1 {
+			arg := strings.ToLower(parts[1])
+			if arg == "status" || arg == "info" {
+				if callbacks.GetGameModeStatusFunc != nil {
+					_ = b.SendMessage(chatIDStr, callbacks.GetGameModeStatusFunc())
+				}
+				return
+			}
+		}
+		if callbacks.ToggleGameModeFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.ToggleGameModeFunc())
+		} else {
+			_ = b.SendMessage(chatIDStr, "🎮 Smart Game Mode QoS diubah.")
+		}
 
 	case "/speedtest", "/speed", "speedtest", "🚀 speedtest server", "🚀 speedtest":
 		b.RunSpeedtestAsync(chatIDStr)

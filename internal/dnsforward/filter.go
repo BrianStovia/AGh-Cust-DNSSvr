@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/AdguardTeam/AdGuardHome/internal/filtering"
+	"github.com/AdguardTeam/AdGuardHome/internal/gamemode"
 	"github.com/AdguardTeam/AdGuardHome/internal/telebot"
 	"github.com/AdguardTeam/urlfilter/rules"
 	"github.com/miekg/dns"
@@ -38,6 +39,10 @@ func (s *Server) filterDNSRequest(
 
 	if host == "use-application-dns.net" || host == "_dns.resolver.arpa" {
 		return &filtering.Result{Reason: filtering.NotFilteredNotFound}, nil
+	}
+
+	if gamemode.IsGameDomain(host) {
+		gamemode.RecordGameQuery(host, pctx.Addr.Addr().String())
 	}
 
 	resVal, err := s.dnsFilter.CheckHost(host, q.Qtype, dctx.setts)

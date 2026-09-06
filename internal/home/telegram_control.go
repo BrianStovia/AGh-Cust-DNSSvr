@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/AdguardTeam/AdGuardHome/internal/aghhttp"
+	"github.com/AdguardTeam/AdGuardHome/internal/gamemode"
 	"github.com/AdguardTeam/AdGuardHome/internal/speedtest"
 	"github.com/AdguardTeam/AdGuardHome/internal/telebot"
 )
@@ -109,6 +110,15 @@ func (web *webAPI) initTelegramCallbacks() {
 				return fmt.Sprintf("⚠️ *Speedtest Gagal:* %s", err.Error())
 			}
 			return res.FormatMarkdown()
+		},
+
+		ToggleGameModeFunc: func() string {
+			gamemode.Toggle()
+			return gamemode.FormatTelegramMessage()
+		},
+
+		GetGameModeStatusFunc: func() string {
+			return gamemode.FormatTelegramMessage()
 		},
 
 		GetDailyReportFunc: func() string {
