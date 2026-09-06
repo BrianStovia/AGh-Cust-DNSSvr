@@ -17,12 +17,14 @@ import type { WebService } from './blocks/PersistentClientsTable/ServiceIcons';
 
 import { PersistentClientsTable } from './blocks/PersistentClientsTable';
 import { RuntimeClientsTable } from './blocks/RuntimeClientsTable';
+import { DeviceDiscovery } from './blocks/DeviceDiscovery/DeviceDiscovery';
 import s from './Clients.module.pcss';
 import { PlusButton } from 'panel/common/ui/PlusButton';
 
 const CLIENT_TABS = {
     PERSISTENT: 'persistent',
     RUNTIME: 'runtime',
+    DISCOVERY: 'discovery',
 } as const;
 
 export const Clients = () => {
@@ -31,9 +33,11 @@ export const Clients = () => {
 
     const [searchParams, setSearchParams] = useSearchParams<{ tab?: string }>();
 
-    const activeTab = createMemo(() =>
-        searchParams.tab === CLIENT_TABS.RUNTIME ? CLIENT_TABS.RUNTIME : CLIENT_TABS.PERSISTENT,
-    );
+    const activeTab = createMemo(() => {
+        if (searchParams.tab === CLIENT_TABS.RUNTIME) return CLIENT_TABS.RUNTIME;
+        if (searchParams.tab === CLIENT_TABS.DISCOVERY) return CLIENT_TABS.DISCOVERY;
+        return CLIENT_TABS.PERSISTENT;
+    });
 
     const handleTabChange = (tabId: string) => {
         setSearchParams({ tab: tabId }, { replace: true });
@@ -154,6 +158,11 @@ export const Clients = () => {
                                     )}
                                 </>
                             ),
+                        },
+                        {
+                            id: CLIENT_TABS.DISCOVERY,
+                            label: '📡 Smart Device Discovery',
+                            content: <DeviceDiscovery />,
                         },
                     ]}
                 />

@@ -1,15 +1,19 @@
 package querylog
 
-import "github.com/AdguardTeam/AdGuardHome/internal/whois"
+import (
+	"github.com/AdguardTeam/AdGuardHome/internal/devicedetect"
+	"github.com/AdguardTeam/AdGuardHome/internal/whois"
+)
 
 // Client is the information required by the query log to match against clients
 // during searches.
 type Client struct {
-	WHOIS          *whois.Info `json:"whois,omitempty"`
-	Name           string      `json:"name"`
-	DisallowedRule string      `json:"disallowed_rule"`
-	Disallowed     bool        `json:"disallowed"`
-	IgnoreQueryLog bool        `json:"-"`
+	WHOIS          *whois.Info              `json:"whois,omitempty"`
+	Device         *devicedetect.DeviceInfo `json:"device,omitempty"`
+	Name           string                   `json:"name"`
+	DisallowedRule string                   `json:"disallowed_rule"`
+	Disallowed     bool                     `json:"disallowed"`
+	IgnoreQueryLog bool                     `json:"-"`
 }
 
 // clientCacheKey is the key by which a cached client information is found.

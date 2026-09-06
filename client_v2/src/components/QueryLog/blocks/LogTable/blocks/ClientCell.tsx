@@ -5,6 +5,7 @@ import { Icon } from 'panel/common/ui/Icon';
 import theme from 'panel/lib/theme';
 import { getClientLocation } from 'panel/components/QueryLog/helpers';
 import { getCountryFlag } from 'panel/helpers/flags';
+import { DeviceBadge } from 'panel/helpers/deviceIcons';
 import type { NormalizedQueryLogItem } from 'panel/helpers/helpers';
 
 import s from '../LogTable.module.pcss';
@@ -18,10 +19,14 @@ export const ClientCell = (props: Props) => {
     const clientName = () => props.row.client_info?.name || '';
     const clientLocation = () => getClientLocation(props.row.client_info?.whois);
     const countryFlag = () => getCountryFlag(props.row.client_info?.whois?.country);
+    const device = () => props.row.client_info?.device;
 
     return (
         <div class={s.clientCell} data-testid="query-log-client-cell">
             <div class={s.clientPrimary}>
+                <Show when={device()}>
+                    <DeviceBadge device={device()} compact />
+                </Show>
                 <Show when={countryFlag()}>
                     <span class={s.flagBadge} title={props.row.client_info?.whois?.country}>
                         {countryFlag()}

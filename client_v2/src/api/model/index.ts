@@ -27,6 +27,7 @@ export * from './clientsFindResponse';
 export * from './clientsSearchRequest';
 export * from './clientsSearchRequestItem';
 export * from './clientUpdate';
+export * from './deviceInfo';
 export * from './dayRange';
 export * from './dhcpConfig';
 export * from './dhcpConfigV4';

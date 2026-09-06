@@ -94,7 +94,9 @@ export type EncryptionData = Partial<
     dns_names: string[] | null;
 };
 
-export { type WhoisInfo, type AutoClient, type Client };
+import type { DeviceInfo } from './api/model/deviceInfo';
+
+export { type WhoisInfo, type AutoClient, type Client, type DeviceInfo };
 
 export type DashboardData = {
     processing: boolean;

@@ -1,4 +1,5 @@
 import type { WhoisInfo } from './whoisInfo';
+import type { DeviceInfo } from './deviceInfo';
 
 /**
  * Auto-Client information
@@ -11,4 +12,5 @@ export interface ClientAuto {
     /** The source of this information */
     source?: string;
     whois_info?: WhoisInfo;
+    device?: DeviceInfo;
 }

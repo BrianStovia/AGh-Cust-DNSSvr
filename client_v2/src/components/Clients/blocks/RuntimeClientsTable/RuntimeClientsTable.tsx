@@ -1,10 +1,11 @@
-import { createMemo } from 'solid-js';
+import { createMemo, Show } from 'solid-js';
 
 import intl from 'panel/common/intl';
 import { sortIp } from 'panel/helpers/helpers';
 import type { AutoClient, NormalizedTopClients, WhoisInfo } from 'panel/initialState';
 import { LOCAL_STORAGE_KEYS, LocalStorageHelper } from 'panel/helpers/localStorageHelper';
 import { Table, type TableColumn } from 'panel/common/ui/Table';
+import { DeviceBadge } from 'panel/helpers/deviceIcons';
 import theme from 'panel/lib/theme';
 
 import { WhoisCell } from './WhoisCell';
@@ -54,14 +55,34 @@ export const RuntimeClientsTable = (props: Props) => {
             },
             accessor: 'name',
             sortable: true,
-            render: (value: string) => (
+            render: (value: string, row: AutoClient) => (
                 <div class={s.cell}>
                     <span class={s.cellLabel}>{intl.getMessage('name_table_header')}</span>
 
                     <div class={s.cellValue}>
-                        <span class={theme.common.textOverflow} title={value || '-'}>
-                            {value || '-'}
+                        <span class={theme.common.textOverflow} title={value || row.device?.name || '-'}>
+                            {value || row.device?.name || '-'}
                         </span>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            key: 'device',
+            header: {
+                text: 'Device Profile',
+                className: s.headerCell,
+            },
+            accessor: (row: AutoClient) => row.device?.model || row.device?.os || '',
+            sortable: true,
+            render: (_value: unknown, row: AutoClient) => (
+                <div class={s.cell}>
+                    <span class={s.cellLabel}>Device Profile</span>
+
+                    <div class={s.cellValue}>
+                        <Show when={row.device} fallback={<span style={{ "color": "var(--text-secondary, #94a3b8)", "font-size": "12px" }}>-</span>}>
+                            <DeviceBadge device={row.device} />
+                        </Show>
                     </div>
                 </div>
             ),

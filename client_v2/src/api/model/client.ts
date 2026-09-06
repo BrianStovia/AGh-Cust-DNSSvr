@@ -1,5 +1,6 @@
 import type { SafeSearchConfig } from './safeSearchConfig';
 import type { Schedule } from './schedule';
+import type { DeviceInfo } from './deviceInfo';
 
 /**
  * Client information.
@@ -9,6 +10,7 @@ export interface Client {
     name?: string;
     /** IP, CIDR, MAC, or ClientID. */
     ids?: string[];
+    device?: DeviceInfo;
     use_global_settings?: boolean;
     filtering_enabled?: boolean;
     parental_enabled?: boolean;

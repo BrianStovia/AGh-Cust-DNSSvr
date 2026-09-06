@@ -218,6 +218,9 @@ func (web *webAPI) registerControlHandlers() {
 	web.httpReg.Register(http.MethodGet, "/control/telegram/status", web.handleGetTelegramStatus)
 	web.httpReg.Register(http.MethodPost, "/control/telegram/config", web.handlePostTelegramConfig)
 	web.httpReg.Register(http.MethodPost, "/control/telegram/test", web.handlePostTelegramTest)
+	web.httpReg.Register(http.MethodGet, "/control/devices/detected", web.handleGetDetectedDevices)
+	web.httpReg.Register(http.MethodPost, "/control/devices/clear", web.handlePostClearDetectedDevices)
+	web.httpReg.Register(http.MethodPost, "/control/devices/convert", web.handlePostConvertDevice)
 
 	web.initTelegramCallbacks()
 

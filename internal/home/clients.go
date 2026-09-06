@@ -14,6 +14,7 @@ import (
 	"github.com/AdguardTeam/AdGuardHome/internal/aghnet"
 	"github.com/AdguardTeam/AdGuardHome/internal/arpdb"
 	"github.com/AdguardTeam/AdGuardHome/internal/client"
+	"github.com/AdguardTeam/AdGuardHome/internal/devicedetect"
 	"github.com/AdguardTeam/AdGuardHome/internal/filtering"
 	"github.com/AdguardTeam/AdGuardHome/internal/filtering/safesearch"
 	"github.com/AdguardTeam/AdGuardHome/internal/querylog"
@@ -346,6 +347,9 @@ func (clients *clientsContainer) clientOrArtificial(
 		if c.WHOIS == nil {
 			c.WHOIS = &whois.Info{}
 		}
+		if c.Device == nil {
+			c.Device = devicedetect.GetDetector().GetDevice(ip, id)
+		}
 	}()
 
 	cli, ok := clients.storage.FindLoose(ip, id)
@@ -411,6 +415,9 @@ func (clients *clientsContainer) UpdateAddress(
 	host string,
 	info *whois.Info,
 ) {
+	if host != "" {
+		devicedetect.GetDetector().InspectHostname(ip, "", host)
+	}
 	clients.storage.UpdateAddress(ctx, ip, host, info)
 }
 

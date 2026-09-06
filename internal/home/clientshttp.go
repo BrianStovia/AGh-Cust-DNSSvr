@@ -10,6 +10,7 @@ import (
 	"github.com/AdguardTeam/AdGuardHome/internal/aghalg"
 	"github.com/AdguardTeam/AdGuardHome/internal/aghhttp"
 	"github.com/AdguardTeam/AdGuardHome/internal/client"
+	"github.com/AdguardTeam/AdGuardHome/internal/devicedetect"
 	"github.com/AdguardTeam/AdGuardHome/internal/filtering"
 	"github.com/AdguardTeam/AdGuardHome/internal/filtering/safesearch"
 	"github.com/AdguardTeam/AdGuardHome/internal/schedule"
@@ -36,6 +37,7 @@ type clientJSON struct {
 
 	// WHOIS is the filtered WHOIS data of a client.
 	WHOIS          *whois.Info                 `json:"whois_info,omitempty"`
+	Device         *devicedetect.DeviceInfo    `json:"device,omitempty"`
 	SafeSearchConf *filtering.SafeSearchConfig `json:"safe_search"`
 
 	// Schedule is blocked services schedule for every day of the week.
@@ -66,7 +68,8 @@ type clientJSON struct {
 
 // runtimeClientJSON is a JSON representation of the [client.Runtime].
 type runtimeClientJSON struct {
-	WHOIS *whois.Info `json:"whois_info"`
+	WHOIS  *whois.Info              `json:"whois_info"`
+	Device *devicedetect.DeviceInfo `json:"device,omitempty"`
 
 	IP     netip.Addr    `json:"ip"`
 	Name   string        `json:"name"`
@@ -100,8 +103,21 @@ func (clients *clientsContainer) handleGetClients(w http.ResponseWriter, r *http
 	clients.lock.Lock()
 	defer clients.lock.Unlock()
 
+	detector := devicedetect.GetDetector()
+
 	clients.storage.RangeByName(func(c *client.Persistent) (cont bool) {
 		cj := clientToJSON(c)
+		for _, id := range c.Identifiers() {
+			if ip, err := netip.ParseAddr(id); err == nil {
+				if dev := detector.GetDevice(ip, ""); dev != nil {
+					cj.Device = dev
+					break
+				}
+			} else if dev := detector.GetDevice(netip.Addr{}, id); dev != nil {
+				cj.Device = dev
+				break
+			}
+		}
 		data.Clients = append(data.Clients, cj)
 
 		return true
@@ -116,6 +132,7 @@ func (clients *clientsContainer) handleGetClients(w http.ResponseWriter, r *http
 			Name:   host,
 			Source: src,
 			IP:     rc.Addr(),
+			Device: detector.GetDevice(rc.Addr(), ""),
 		}
 
 		data.RuntimeClients = append(data.RuntimeClients, cj)

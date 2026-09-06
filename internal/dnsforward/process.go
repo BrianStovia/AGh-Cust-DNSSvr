@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AdguardTeam/AdGuardHome/internal/devicedetect"
 	"github.com/AdguardTeam/AdGuardHome/internal/filtering"
 	"github.com/AdguardTeam/dnsproxy/proxy"
 	"github.com/AdguardTeam/golibs/netutil"
@@ -150,6 +151,8 @@ func (s *Server) processInitial(
 	if ok {
 		dctx.clientID = clientID
 	}
+
+	devicedetect.GetDetector().InspectQuery(pctx.Addr.Addr(), dctx.clientID, q.Name)
 
 	// Get the client-specific filtering settings.
 	dctx.protectionEnabled, _ = s.UpdatedProtectionStatus(ctx)
