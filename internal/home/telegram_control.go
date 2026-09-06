@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"runtime/debug"
 	"time"
 
 	"github.com/AdguardTeam/AdGuardHome/internal/aghhttp"
@@ -95,6 +96,65 @@ func (web *webAPI) initTelegramCallbacks() {
 			return fmt.Sprintf("📊 *Ringkasan Statistik DNS*\n\n" +
 				"Untuk melihat grafik interaktif dan peta GeoIP, buka web dashboard: https://dns.brianstovia.com",
 			)
+		},
+
+		OptimizeServerFunc: func() string {
+			var before, after runtime.MemStats
+			runtime.ReadMemStats(&before)
+			start := time.Now()
+
+			// Run GC and release OS memory back to kernel
+			runtime.GC()
+			debug.FreeOSMemory()
+
+			runtime.ReadMemStats(&after)
+			duration := time.Since(start).Milliseconds()
+
+			beforeAllocMB := float64(before.Alloc) / 1024 / 1024
+			afterAllocMB := float64(after.Alloc) / 1024 / 1024
+			freedMB := beforeAllocMB - afterAllocMB
+			if freedMB < 0 {
+				freedMB = 0
+			}
+
+			beforeSysMB := float64(before.Sys) / 1024 / 1024
+			afterSysMB := float64(after.Sys) / 1024 / 1024
+
+			return fmt.Sprintf("⚡ *Optimasi Server Selesai (One-Click Clean)* 🚀\n\n"+
+				"• *RAM In-Use:* `%.1f MB` ➔ `%.1f MB` (*-%.1f MB*)\n"+
+				"• *System RAM:* `%.1f MB` ➔ `%.1f MB`\n"+
+				"• *Garbage Collection:* ✅ Sukses\n"+
+				"• *OS Memory Released:* ✅ Sukses\n"+
+				"• *Goroutines Aktif:* `%d`\n"+
+				"• *Durasi Eksekusi:* `%d ms`\n\n"+
+				"🛡️ _AdGuard Home beroperasi dalam performa puncak!_",
+				beforeAllocMB, afterAllocMB, freedMB,
+				beforeSysMB, afterSysMB,
+				runtime.NumGoroutine(),
+				duration,
+			)
+		},
+
+		GetSetupGuideFunc: func() string {
+			return "📱 *PANDUAN SETUP DNS SERVER BRST*\n\n" +
+				"Gunakan konfigurasi berikut pada perangkat atau router Anda:\n\n" +
+				"🌐 *DNS Standar (IPv4 / IPv6)*\n" +
+				"• *Primary DNS:* `127.0.0.1` (atau IP VPS Anda)\n" +
+				"• *Secondary DNS:* `1.1.1.1` / `8.8.8.8`\n\n" +
+				"🔒 *DNS-over-HTTPS (DoH)*\n" +
+				"`https://dns.brianstovia.com/dns-query`\n\n" +
+				"🛡️ *DNS-over-TLS (DoT)*\n" +
+				"`tls://dns.brianstovia.com`\n\n" +
+				"━━━━━━━━━━━━━━━━━━━━\n" +
+				"📲 *Langkah Pasang Cepat:*\n\n" +
+				"🤖 *Android 9+ (Private DNS):*\n" +
+				"Buka *Pengaturan* ➔ *Koneksi* ➔ *DNS Pribadi* ➔ Masukkan:\n" +
+				"`dns.brianstovia.com`\n\n" +
+				"🍎 *iOS / macOS / Windows 11:*\n" +
+				"Gunakan DoH URL di atas pada pengaturan *Secure DNS* browser (Chrome / Edge / Firefox / Brave) atau install DoH Configuration Profile.\n\n" +
+				"📺 *Router / Wi-Fi Rumah:*\n" +
+				"Atur DNS Server DHCP di pengaturan Router ke IP Server ini untuk memproteksi seluruh jaringan secara otomatis.\n\n" +
+				"🌐 *Web Dashboard:* https://dns.brianstovia.com"
 		},
 	})
 }

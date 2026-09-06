@@ -34,6 +34,8 @@ type BotCallbacks struct {
 	PauseProtectionFunc  func(minutes int) error
 	ResumeProtectionFunc func() error
 	GetStatsSummaryFunc  func() string
+	OptimizeServerFunc   func() string
+	GetSetupGuideFunc    func() string
 }
 
 // Status represents the runtime status of the bot.
@@ -242,6 +244,10 @@ func (b *Bot) SendInteractiveMenu(chatID, text string) error {
 				{Text: "📈 Statistik Live", CallbackData: "cb:stats"},
 			},
 			{
+				{Text: "⚡ Optimalkan Server", CallbackData: "cb:optimize"},
+				{Text: "📱 Setup Guide", CallbackData: "cb:guide"},
+			},
+			{
 				{Text: "⏸️ Jeda 10 Menit", CallbackData: "cb:pause_10"},
 				{Text: "▶️ Resume Proteksi", CallbackData: "cb:resume"},
 			},
@@ -348,6 +354,8 @@ func (b *Bot) setMyCommands() error {
 			{"command": "menu", "description": "📱 Buka Menu Tombol Interaktif"},
 			{"command": "status", "description": "📊 Lihat Status Server & RAM"},
 			{"command": "stats", "description": "📈 Ringkasan Statistik DNS"},
+			{"command": "clean", "description": "⚡ Optimasi RAM & One-Click Clean"},
+			{"command": "guide", "description": "📱 Setup Guide / Panduan Koneksi DNS"},
 			{"command": "unblock", "description": "✅ Buka Blokir Domain (/unblock nama.com)"},
 			{"command": "block", "description": "🛡️ Masukkan Domain ke Blocklist (/block nama.com)"},
 			{"command": "pause", "description": "⏸️ Jeda Filter 10 Menit (/pause 10)"},
@@ -578,6 +586,20 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, data string) 
 	case "cb:ping":
 		b.answerCallbackQuery(callbackID, "Pong! Server responsif")
 		_ = b.SendMessage(chatIDStr, fmt.Sprintf("🏓 *Pong!*\nServer AdGuard Home aktif.\nWaktu: `%s`", time.Now().Format("15:04:05 WIB")))
+	case "cb:optimize":
+		b.answerCallbackQuery(callbackID, "⚡ Mengoptimalkan server...")
+		if callbacks.OptimizeServerFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.OptimizeServerFunc())
+		} else {
+			_ = b.SendMessage(chatIDStr, "⚡ Server telah dioptimalkan.")
+		}
+	case "cb:guide":
+		b.answerCallbackQuery(callbackID, "📱 Membuka panduan setup...")
+		if callbacks.GetSetupGuideFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.GetSetupGuideFunc())
+		} else {
+			_ = b.SendMessage(chatIDStr, "📱 Buka https://dns.brianstovia.com untuk panduan setup.")
+		}
 	case "cb:menu":
 		b.answerCallbackQuery(callbackID, "Membuka Menu")
 		_ = b.SendInteractiveMenu(chatIDStr, "🤖 *Panel Kontrol Interaktif AdGuard Home*\n\nPilih aksi di bawah ini:")
@@ -587,6 +609,8 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, data string) 
 			"• `/menu` — Tampilkan menu tombol interaktif\n" +
 			"• `/status` — Status server, RAM, Uptime & Klien\n" +
 			"• `/stats` — Statistik query & top domain\n" +
+			"• `/clean` — ⚡ Optimasi RAM & One-Click Clean\n" +
+			"• `/guide` — 📱 Setup Guide & Panduan Pasang DNS\n" +
 			"• `/unblock <domain>` — Buka blokir domain (contoh: `/unblock reddit.com`)\n" +
 			"• `/block <domain>` — Blokir domain (contoh: `/block tiktok.com`)\n" +
 			"• `/pause [menit]` — Jeda filter sementara (contoh: `/pause 15`)\n" +
@@ -633,12 +657,28 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 			"• `/menu` — Buka menu tombol interaktif\n" +
 			"• `/status` — Lihat status server, RAM, & Uptime\n" +
 			"• `/stats` — Ringkasan query & top domain\n" +
+			"• `/clean` — ⚡ Optimasi RAM & One-Click Clean\n" +
+			"• `/guide` — 📱 Setup Guide & Panduan Pasang DNS\n" +
 			"• `/unblock <domain>` — Buka blokir domain seketika\n" +
 			"• `/block <domain>` — Masukkan domain ke blocklist\n" +
 			"• `/pause [menit]` — Jeda filter sementara (default 10 menit)\n" +
 			"• `/resume` — Nyalakan kembali filter adblock\n" +
 			"• `/ping` — Uji responsivitas bot"
 		_ = b.SendMessage(chatIDStr, msg)
+
+	case "/clean", "/optimize", "clean", "optimize", "⚡ optimalkan server", "⚡ optimalkan sekarang", "bersihkan":
+		if callbacks.OptimizeServerFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.OptimizeServerFunc())
+		} else {
+			_ = b.SendMessage(chatIDStr, "⚡ Server telah dioptimalkan.")
+		}
+
+	case "/guide", "/setup", "guide", "setup", "📱 panduan setup", "panduan", "setup guide":
+		if callbacks.GetSetupGuideFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.GetSetupGuideFunc())
+		} else {
+			_ = b.SendMessage(chatIDStr, "📱 Kunjungi https://dns.brianstovia.com untuk panduan setup.")
+		}
 
 	case "/ping", "ping", "🏓 ping":
 		_ = b.SendMessage(chatIDStr, fmt.Sprintf("🏓 *Pong!*\nServer AdGuard Home aktif dan responsif.\nWaktu: `%s`", time.Now().Format("15:04:05 WIB")))
