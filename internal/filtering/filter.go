@@ -718,7 +718,7 @@ func (d *DNSFilter) ApplyAdditionalFiltering(cliAddr netip.Addr, clientID string
 		// TODO(e.burkov):  Get rid of this crutch.
 		setts.ServicesRules = nil
 		svcs := setts.BlockedServices.IDs
-		if !setts.BlockedServices.Schedule.Contains(time.Now()) {
+		if setts.BlockedServices.Schedule == nil || !setts.BlockedServices.Schedule.Contains(time.Now()) {
 			d.ApplyBlockedServicesList(setts, svcs)
 		}
 	}
