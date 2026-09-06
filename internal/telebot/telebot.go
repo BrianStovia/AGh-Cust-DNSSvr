@@ -670,7 +670,10 @@ func (b *Bot) sendMessageWithMarkup(chatID, text string, replyMarkup any) error 
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL, bytes.NewReader(body))
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -722,7 +725,10 @@ func (b *Bot) EditMessageText(chatID int64, messageID int64, text string, replyM
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL, bytes.NewReader(body))
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -754,7 +760,10 @@ func (b *Bot) answerCallbackQuery(callbackID, text string) {
 	}
 
 	body, _ := json.Marshal(payload)
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL, bytes.NewReader(body))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(body))
 	if err == nil {
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := b.httpClient.Do(req)

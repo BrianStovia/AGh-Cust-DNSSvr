@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/AdguardTeam/AdGuardHome/internal/agh"
 	"github.com/AdguardTeam/AdGuardHome/internal/aghhttp"
 	"github.com/AdguardTeam/AdGuardHome/internal/filtering/rulelist"
 	"github.com/AdguardTeam/AdGuardHome/internal/schedule"
@@ -294,28 +295,33 @@ func (d *DNSFilter) GetBlockedServicesIDs() []string {
 
 // SetBlockedService sets the blocked state for a service ID in the global configuration.
 func (d *DNSFilter) SetBlockedService(ctx context.Context, id string, block bool) error {
-	d.confMu.Lock()
-	defer d.confMu.Unlock()
+	var modifier agh.ConfigModifier
+	func() {
+		d.confMu.Lock()
+		defer d.confMu.Unlock()
 
-	if d.conf.BlockedServices == nil {
-		d.conf.BlockedServices = &BlockedServices{
-			Schedule: schedule.EmptyWeekly(),
+		if d.conf.BlockedServices == nil {
+			d.conf.BlockedServices = &BlockedServices{
+				Schedule: schedule.EmptyWeekly(),
+			}
 		}
-	}
 
-	idx := slices.Index(d.conf.BlockedServices.IDs, id)
-	if block {
-		if idx == -1 {
-			d.conf.BlockedServices.IDs = append(d.conf.BlockedServices.IDs, id)
+		idx := slices.Index(d.conf.BlockedServices.IDs, id)
+		if block {
+			if idx == -1 {
+				d.conf.BlockedServices.IDs = append(d.conf.BlockedServices.IDs, id)
+			}
+		} else {
+			if idx != -1 {
+				d.conf.BlockedServices.IDs = slices.Delete(d.conf.BlockedServices.IDs, idx, idx+1)
+			}
 		}
-	} else {
-		if idx != -1 {
-			d.conf.BlockedServices.IDs = slices.Delete(d.conf.BlockedServices.IDs, idx, idx+1)
-		}
-	}
 
-	if d.conf.ConfModifier != nil {
-		d.conf.ConfModifier.Apply(ctx)
+		modifier = d.conf.ConfModifier
+	}()
+
+	if modifier != nil {
+		modifier.Apply(ctx)
 	}
 
 	return nil
@@ -323,26 +329,31 @@ func (d *DNSFilter) SetBlockedService(ctx context.Context, id string, block bool
 
 // ToggleBlockedService toggles a blocked service ID in the global configuration.
 func (d *DNSFilter) ToggleBlockedService(ctx context.Context, id string) (blocked bool, err error) {
-	d.confMu.Lock()
-	defer d.confMu.Unlock()
+	var modifier agh.ConfigModifier
+	func() {
+		d.confMu.Lock()
+		defer d.confMu.Unlock()
 
-	if d.conf.BlockedServices == nil {
-		d.conf.BlockedServices = &BlockedServices{
-			Schedule: schedule.EmptyWeekly(),
+		if d.conf.BlockedServices == nil {
+			d.conf.BlockedServices = &BlockedServices{
+				Schedule: schedule.EmptyWeekly(),
+			}
 		}
-	}
 
-	idx := slices.Index(d.conf.BlockedServices.IDs, id)
-	if idx != -1 {
-		d.conf.BlockedServices.IDs = slices.Delete(d.conf.BlockedServices.IDs, idx, idx+1)
-		blocked = false
-	} else {
-		d.conf.BlockedServices.IDs = append(d.conf.BlockedServices.IDs, id)
-		blocked = true
-	}
+		idx := slices.Index(d.conf.BlockedServices.IDs, id)
+		if idx != -1 {
+			d.conf.BlockedServices.IDs = slices.Delete(d.conf.BlockedServices.IDs, idx, idx+1)
+			blocked = false
+		} else {
+			d.conf.BlockedServices.IDs = append(d.conf.BlockedServices.IDs, id)
+			blocked = true
+		}
 
-	if d.conf.ConfModifier != nil {
-		d.conf.ConfModifier.Apply(ctx)
+		modifier = d.conf.ConfModifier
+	}()
+
+	if modifier != nil {
+		modifier.Apply(ctx)
 	}
 
 	return blocked, nil
