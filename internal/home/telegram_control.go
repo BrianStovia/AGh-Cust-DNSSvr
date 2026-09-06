@@ -246,12 +246,36 @@ func (web *webAPI) initTelegramCallbacks() {
 			return nil
 		},
 
+		GetAllAvailableServicesFunc: func() []telebot.BlockedServiceItem {
+			if globalContext.filters != nil {
+				svcs := globalContext.filters.GetAllAvailableServices()
+				res := make([]telebot.BlockedServiceItem, len(svcs))
+				for i, s := range svcs {
+					res[i] = telebot.BlockedServiceItem{
+						ID:      s.ID,
+						Name:    s.Name,
+						GroupID: s.GroupID,
+					}
+				}
+				return res
+			}
+			return nil
+		},
+
 		ToggleBlockedServiceFunc: func(id string) (bool, error) {
 			if globalContext.filters != nil {
 				ctx := context.Background()
 				return globalContext.filters.ToggleBlockedService(ctx, id)
 			}
 			return false, fmt.Errorf("filters uninitialized")
+		},
+
+		SetBlockedServiceFunc: func(id string, block bool) error {
+			if globalContext.filters != nil {
+				ctx := context.Background()
+				return globalContext.filters.SetBlockedService(ctx, id, block)
+			}
+			return fmt.Errorf("filters uninitialized")
 		},
 
 		QuickBlockServiceFunc: func(service string) string {

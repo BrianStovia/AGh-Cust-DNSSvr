@@ -260,6 +260,26 @@ func (d *DNSFilter) handleBlockedServicesUpdate(w http.ResponseWriter, r *http.R
 	d.conf.ConfModifier.Apply(ctx)
 }
 
+// BlockedServiceDetail represents an available service for blocking.
+type BlockedServiceDetail struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	GroupID string `json:"group_id"`
+}
+
+// GetAllAvailableServices returns all registered blocked services in AdGuard Home.
+func (d *DNSFilter) GetAllAvailableServices() []BlockedServiceDetail {
+	res := make([]BlockedServiceDetail, len(blockedServices))
+	for i, s := range blockedServices {
+		res[i] = BlockedServiceDetail{
+			ID:      s.ID,
+			Name:    s.Name,
+			GroupID: s.GroupID,
+		}
+	}
+	return res
+}
+
 // GetBlockedServicesIDs returns the list of currently blocked service IDs.
 func (d *DNSFilter) GetBlockedServicesIDs() []string {
 	d.confMu.RLock()
@@ -270,6 +290,35 @@ func (d *DNSFilter) GetBlockedServicesIDs() []string {
 	}
 
 	return slices.Clone(d.conf.BlockedServices.IDs)
+}
+
+// SetBlockedService sets the blocked state for a service ID in the global configuration.
+func (d *DNSFilter) SetBlockedService(ctx context.Context, id string, block bool) error {
+	d.confMu.Lock()
+	defer d.confMu.Unlock()
+
+	if d.conf.BlockedServices == nil {
+		d.conf.BlockedServices = &BlockedServices{
+			Schedule: schedule.EmptyWeekly(),
+		}
+	}
+
+	idx := slices.Index(d.conf.BlockedServices.IDs, id)
+	if block {
+		if idx == -1 {
+			d.conf.BlockedServices.IDs = append(d.conf.BlockedServices.IDs, id)
+		}
+	} else {
+		if idx != -1 {
+			d.conf.BlockedServices.IDs = slices.Delete(d.conf.BlockedServices.IDs, idx, idx+1)
+		}
+	}
+
+	if d.conf.ConfModifier != nil {
+		d.conf.ConfModifier.Apply(ctx)
+	}
+
+	return nil
 }
 
 // ToggleBlockedService toggles a blocked service ID in the global configuration.
@@ -298,4 +347,5 @@ func (d *DNSFilter) ToggleBlockedService(ctx context.Context, id string) (blocke
 
 	return blocked, nil
 }
+
 

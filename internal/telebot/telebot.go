@@ -28,20 +28,22 @@ type Config struct {
 
 // BotCallbacks provides hooks into the AdGuard Home core engine.
 type BotCallbacks struct {
-	GetStatusFunc            func() string
-	UnblockDomainFunc        func(domain string) (string, error)
-	BlockDomainFunc          func(domain string) (string, error)
-	PauseProtectionFunc      func(minutes int) error
-	ResumeProtectionFunc     func() error
-	GetStatsSummaryFunc      func() string
-	OptimizeServerFunc       func() string
-	GetSetupGuideFunc        func() string
-	GetServerInfoFunc        func() string
-	ToggleSafeModeFunc       func() string
-	QuickBlockServiceFunc    func(service string) string
-	DNSLookupFunc            func(domain string) string
-	GetBlockedServicesFunc   func() []string
-	ToggleBlockedServiceFunc func(id string) (bool, error)
+	GetStatusFunc               func() string
+	UnblockDomainFunc           func(domain string) (string, error)
+	BlockDomainFunc             func(domain string) (string, error)
+	PauseProtectionFunc         func(minutes int) error
+	ResumeProtectionFunc        func() error
+	GetStatsSummaryFunc         func() string
+	OptimizeServerFunc          func() string
+	GetSetupGuideFunc           func() string
+	GetServerInfoFunc           func() string
+	ToggleSafeModeFunc          func() string
+	QuickBlockServiceFunc       func(service string) string
+	DNSLookupFunc               func(domain string) string
+	GetBlockedServicesFunc      func() []string
+	GetAllAvailableServicesFunc func() []BlockedServiceItem
+	ToggleBlockedServiceFunc    func(id string) (bool, error)
+	SetBlockedServiceFunc       func(id string, block bool) error
 }
 
 // Status represents the runtime status of the bot.
@@ -277,59 +279,176 @@ func (b *Bot) SendInteractiveMenu(chatID, text string) error {
 
 // BlockedServiceItem defines a single service for Telegram pagination.
 type BlockedServiceItem struct {
-	ID   string
-	Name string
-	Icon string
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	GroupID string `json:"group_id"`
+	Icon    string `json:"icon,omitempty"`
 }
 
-// DefaultPopularBlockedServices is the global catalog of services in the Telegram bot.
+// getServiceIcon returns a representative emoji for a service.
+func getServiceIcon(id, groupID string) string {
+	switch id {
+	case "youtube":
+		return "▶️"
+	case "netflix":
+		return "🍿"
+	case "spotify":
+		return "🎵"
+	case "disneyplus":
+		return "✨"
+	case "twitch":
+		return "🟣"
+	case "primevideo", "amazon_prime":
+		return "📦"
+	case "hulu":
+		return "🟢"
+	case "crunchyroll":
+		return "🍣"
+	case "bilibili":
+		return "📺"
+	case "tiktok":
+		return "🎵"
+	case "instagram":
+		return "📸"
+	case "facebook":
+		return "📘"
+	case "twitter", "x":
+		return "🐦"
+	case "reddit":
+		return "🤖"
+	case "threads":
+		return "🧵"
+	case "pinterest":
+		return "📌"
+	case "snapchat":
+		return "👻"
+	case "telegram":
+		return "✈️"
+	case "whatsapp":
+		return "💬"
+	case "discord":
+		return "👾"
+	case "skype":
+		return "🗣️"
+	case "steam":
+		return "🎮"
+	case "roblox":
+		return "🧱"
+	case "epic_games":
+		return "🎯"
+	case "riot_games", "valorant", "leagueoflegends":
+		return "⚔️"
+	case "blizzard", "activision_blizzard":
+		return "❄️"
+	case "pubg":
+		return "🔫"
+	case "minecraft":
+		return "⛏️"
+	case "genshin_impact":
+		return "✨"
+	case "playstation", "xbox":
+		return "🎮"
+	case "shopee":
+		return "🛍️"
+	case "tokopedia":
+		return "📦"
+	case "lazada":
+		return "🛒"
+	case "amazon":
+		return "📦"
+	case "ebay":
+		return "🏷️"
+	case "openai", "chatgpt":
+		return "🧠"
+	case "claude":
+		return "🤖"
+	case "pornhub", "onlyfans":
+		return "🔞"
+	case "tinder", "badoo":
+		return "💜"
+	case "9gag":
+		return "🤣"
+	case "4chan":
+		return "🍀"
+	}
+
+	switch groupID {
+	case "social_network":
+		return "📱"
+	case "streaming":
+		return "🎬"
+	case "gaming":
+		return "🎮"
+	case "messenger":
+		return "💬"
+	case "shopping":
+		return "🛍️"
+	case "dating":
+		return "💜"
+	case "gambling":
+		return "🎰"
+	case "ai":
+		return "🤖"
+	case "privacy":
+		return "🔒"
+	case "hosting":
+		return "☁️"
+	case "cdn":
+		return "🌐"
+	default:
+		return "🌐"
+	}
+}
+
+// DefaultPopularBlockedServices is the fallback catalog if dynamic engine list is unavailable.
 var DefaultPopularBlockedServices = []BlockedServiceItem{
-	// Page 1: Sosmed & Video Populer
-	{ID: "tiktok", Name: "TikTok", Icon: "📱"},
-	{ID: "youtube", Name: "YouTube", Icon: "📺"},
-	{ID: "instagram", Name: "Instagram", Icon: "📸"},
-	{ID: "facebook", Name: "Facebook", Icon: "📘"},
-	{ID: "twitter", Name: "Twitter / X", Icon: "🐦"},
-	{ID: "telegram", Name: "Telegram", Icon: "💬"},
-	{ID: "whatsapp", Name: "WhatsApp", Icon: "🟢"},
-	{ID: "snapchat", Name: "Snapchat", Icon: "👻"},
-
-	// Page 2: Streaming & Musik
-	{ID: "netflix", Name: "Netflix", Icon: "🎬"},
-	{ID: "spotify", Name: "Spotify", Icon: "🎵"},
-	{ID: "disneyplus", Name: "Disney+", Icon: "🍿"},
-	{ID: "twitch", Name: "Twitch", Icon: "🟣"},
-	{ID: "discord", Name: "Discord", Icon: "👾"},
-	{ID: "reddit", Name: "Reddit", Icon: "🤖"},
-	{ID: "pinterest", Name: "Pinterest", Icon: "📌"},
-	{ID: "threads", Name: "Threads", Icon: "🧵"},
-
-	// Page 3: Gaming & Game Store
-	{ID: "roblox", Name: "Roblox", Icon: "🎮"},
-	{ID: "steam", Name: "Steam", Icon: "🎮"},
-	{ID: "epic_games", Name: "Epic Games", Icon: "🎮"},
-	{ID: "riot_games", Name: "Riot Games", Icon: "🎮"},
-	{ID: "blizzard", Name: "Battle.net", Icon: "🎮"},
-	{ID: "pubg", Name: "PUBG", Icon: "🔫"},
-	{ID: "9gag", Name: "9GAG", Icon: "🤣"},
-	{ID: "4chan", Name: "4chan", Icon: "🍀"},
-
-	// Page 4: Belanja, Dating & Dewasa
-	{ID: "pornhub", Name: "Pornhub", Icon: "🔞"},
-	{ID: "onlyfans", Name: "OnlyFans", Icon: "🔞"},
-	{ID: "tinder", Name: "Tinder", Icon: "🔥"},
-	{ID: "badoo", Name: "Badoo", Icon: "💜"},
-	{ID: "shopee", Name: "Shopee", Icon: "🛍️"},
-	{ID: "lazada", Name: "Lazada", Icon: "📦"},
-	{ID: "amazon", Name: "Amazon", Icon: "📦"},
-	{ID: "ebay", Name: "eBay", Icon: "🛒"},
+	{ID: "tiktok", Name: "TikTok", GroupID: "social_network", Icon: "📱"},
+	{ID: "youtube", Name: "YouTube", GroupID: "streaming", Icon: "📺"},
+	{ID: "instagram", Name: "Instagram", GroupID: "social_network", Icon: "📸"},
+	{ID: "facebook", Name: "Facebook", GroupID: "social_network", Icon: "📘"},
+	{ID: "twitter", Name: "Twitter / X", GroupID: "social_network", Icon: "🐦"},
+	{ID: "telegram", Name: "Telegram", GroupID: "messenger", Icon: "💬"},
+	{ID: "whatsapp", Name: "WhatsApp", GroupID: "messenger", Icon: "🟢"},
+	{ID: "snapchat", Name: "Snapchat", GroupID: "social_network", Icon: "👻"},
+	{ID: "netflix", Name: "Netflix", GroupID: "streaming", Icon: "🎬"},
+	{ID: "spotify", Name: "Spotify", GroupID: "streaming", Icon: "🎵"},
+	{ID: "disneyplus", Name: "Disney+", GroupID: "streaming", Icon: "🍿"},
+	{ID: "twitch", Name: "Twitch", GroupID: "streaming", Icon: "🟣"},
+	{ID: "discord", Name: "Discord", GroupID: "messenger", Icon: "👾"},
+	{ID: "reddit", Name: "Reddit", GroupID: "social_network", Icon: "🤖"},
+	{ID: "pinterest", Name: "Pinterest", GroupID: "social_network", Icon: "📌"},
+	{ID: "threads", Name: "Threads", GroupID: "social_network", Icon: "🧵"},
+	{ID: "roblox", Name: "Roblox", GroupID: "gaming", Icon: "🎮"},
+	{ID: "steam", Name: "Steam", GroupID: "gaming", Icon: "🎮"},
+	{ID: "epic_games", Name: "Epic Games", GroupID: "gaming", Icon: "🎮"},
+	{ID: "riot_games", Name: "Riot Games", GroupID: "gaming", Icon: "🎮"},
+	{ID: "blizzard", Name: "Battle.net", GroupID: "gaming", Icon: "🎮"},
+	{ID: "pubg", Name: "PUBG", GroupID: "gaming", Icon: "🔫"},
+	{ID: "9gag", Name: "9GAG", GroupID: "social_network", Icon: "🤣"},
+	{ID: "4chan", Name: "4chan", GroupID: "social_network", Icon: "🍀"},
+	{ID: "pornhub", Name: "Pornhub", GroupID: "dating", Icon: "🔞"},
+	{ID: "onlyfans", Name: "OnlyFans", GroupID: "dating", Icon: "🔞"},
+	{ID: "tinder", Name: "Tinder", GroupID: "dating", Icon: "🔥"},
+	{ID: "badoo", Name: "Badoo", GroupID: "dating", Icon: "💜"},
+	{ID: "shopee", Name: "Shopee", GroupID: "shopping", Icon: "🛍️"},
+	{ID: "lazada", Name: "Lazada", GroupID: "shopping", Icon: "📦"},
+	{ID: "amazon", Name: "Amazon", GroupID: "shopping", Icon: "📦"},
+	{ID: "ebay", Name: "eBay", GroupID: "shopping", Icon: "🛒"},
 }
 
-// BuildBlockedServicesMenu builds the paginated keyboard and message for blocked services.
-func (b *Bot) BuildBlockedServicesMenu(page int) (string, *InlineKeyboardMarkup) {
+// BuildBlockedServicesMenu builds the paginated keyboard and message for blocked services with category filters and search.
+func (b *Bot) BuildBlockedServicesMenu(category string, page int, search string) (string, *InlineKeyboardMarkup) {
 	b.mu.RLock()
 	callbacks := b.callbacks
 	b.mu.RUnlock()
+
+	var allServices []BlockedServiceItem
+	if callbacks.GetAllAvailableServicesFunc != nil {
+		allServices = callbacks.GetAllAvailableServicesFunc()
+	}
+	if len(allServices) == 0 {
+		allServices = DefaultPopularBlockedServices
+	}
 
 	var blockedMap = make(map[string]bool)
 	if callbacks.GetBlockedServicesFunc != nil {
@@ -338,9 +457,51 @@ func (b *Bot) BuildBlockedServicesMenu(page int) (string, *InlineKeyboardMarkup)
 		}
 	}
 
+	if category == "" {
+		category = "all"
+	}
+
+	// Filter by Category and Search Query
+	searchLower := strings.ToLower(strings.TrimSpace(search))
+	var filtered []BlockedServiceItem
+
+	for _, s := range allServices {
+		// Category match
+		if category != "all" {
+			if category == "dating" {
+				if s.GroupID != "dating" && s.GroupID != "gambling" {
+					continue
+				}
+			} else if s.GroupID != category {
+				continue
+			}
+		}
+
+		// Search match
+		if searchLower != "" {
+			if !strings.Contains(strings.ToLower(s.ID), searchLower) && !strings.Contains(strings.ToLower(s.Name), searchLower) {
+				continue
+			}
+		}
+
+		icon := s.Icon
+		if icon == "" {
+			icon = getServiceIcon(s.ID, s.GroupID)
+		}
+		filtered = append(filtered, BlockedServiceItem{
+			ID:      s.ID,
+			Name:    s.Name,
+			GroupID: s.GroupID,
+			Icon:    icon,
+		})
+	}
+
 	pageSize := 8
-	totalServices := len(DefaultPopularBlockedServices)
-	totalPages := (totalServices + pageSize - 1) / pageSize
+	totalFiltered := len(filtered)
+	totalPages := (totalFiltered + pageSize - 1) / pageSize
+	if totalPages < 1 {
+		totalPages = 1
+	}
 	if page < 1 {
 		page = 1
 	}
@@ -350,15 +511,19 @@ func (b *Bot) BuildBlockedServicesMenu(page int) (string, *InlineKeyboardMarkup)
 
 	startIdx := (page - 1) * pageSize
 	endIdx := startIdx + pageSize
-	if endIdx > totalServices {
-		endIdx = totalServices
+	if endIdx > totalFiltered {
+		endIdx = totalFiltered
 	}
 
-	currentItems := DefaultPopularBlockedServices[startIdx:endIdx]
+	var currentItems []BlockedServiceItem
+	if totalFiltered > 0 {
+		currentItems = filtered[startIdx:endIdx]
+	}
 
 	var keyboard [][]InlineKeyboardButton
-	var currentRow []InlineKeyboardButton
 
+	// 1. Service Toggle Buttons (2 columns per row)
+	var currentRow []InlineKeyboardButton
 	for _, svc := range currentItems {
 		isBlocked := blockedMap[svc.ID]
 		btnLabel := fmt.Sprintf("🟢 %s %s", svc.Icon, svc.Name)
@@ -368,7 +533,7 @@ func (b *Bot) BuildBlockedServicesMenu(page int) (string, *InlineKeyboardMarkup)
 
 		currentRow = append(currentRow, InlineKeyboardButton{
 			Text:         btnLabel,
-			CallbackData: fmt.Sprintf("cb:bsvc_toggle:%s:%d", svc.ID, page),
+			CallbackData: fmt.Sprintf("cb:bsvc_t:%s:%s:%d", svc.ID, category, page),
 		})
 
 		if len(currentRow) == 2 {
@@ -380,38 +545,95 @@ func (b *Bot) BuildBlockedServicesMenu(page int) (string, *InlineKeyboardMarkup)
 		keyboard = append(keyboard, currentRow)
 	}
 
-	// Navigation Row
+	// 2. Category Filter Tabs (4 columns x 2 rows)
+	catRow1 := []InlineKeyboardButton{}
+	catRow2 := []InlineKeyboardButton{}
+
+	cats := []struct {
+		id    string
+		label string
+	}{
+		{"social_network", "📱 Sosmed"},
+		{"streaming", "🎬 Stream"},
+		{"gaming", "🎮 Game"},
+		{"messenger", "💬 Chat"},
+		{"shopping", "🛍️ Belanja"},
+		{"dating", "🔞 Dewasa"},
+		{"ai", "🤖 AI"},
+		{"all", "📋 Semua"},
+	}
+
+	for i, c := range cats {
+		lbl := c.label
+		if category == c.id {
+			lbl = "👉 " + c.label
+		}
+		btn := InlineKeyboardButton{
+			Text:         lbl,
+			CallbackData: fmt.Sprintf("cb:bsvc_c:%s", c.id),
+		}
+		if i < 4 {
+			catRow1 = append(catRow1, btn)
+		} else {
+			catRow2 = append(catRow2, btn)
+		}
+	}
+	keyboard = append(keyboard, catRow1, catRow2)
+
+	// 3. Navigation Controls: [⬅️ Hal X] [📄 X/Y] [Hal Y ➡️]
 	var navRow []InlineKeyboardButton
 	if page > 1 {
 		navRow = append(navRow, InlineKeyboardButton{
 			Text:         fmt.Sprintf("⬅️ Hal %d", page-1),
-			CallbackData: fmt.Sprintf("cb:bsvc_page:%d", page-1),
+			CallbackData: fmt.Sprintf("cb:bsvc_p:%s:%d", category, page-1),
 		})
 	}
 	navRow = append(navRow, InlineKeyboardButton{
-		Text:         fmt.Sprintf("📄 %d/%d", page, totalPages),
-		CallbackData: fmt.Sprintf("cb:bsvc_refresh:%d", page),
+		Text:         fmt.Sprintf("📄 %d/%d (🔄)", page, totalPages),
+		CallbackData: fmt.Sprintf("cb:bsvc_p:%s:%d", category, page),
 	})
 	if page < totalPages {
 		navRow = append(navRow, InlineKeyboardButton{
 			Text:         fmt.Sprintf("Hal %d ➡️", page+1),
-			CallbackData: fmt.Sprintf("cb:bsvc_page:%d", page+1),
+			CallbackData: fmt.Sprintf("cb:bsvc_p:%s:%d", category, page+1),
 		})
 	}
 	keyboard = append(keyboard, navRow)
 
-	// Bottom Row (Back to Main Menu)
+	// 4. Bulk Block / Unblock this page
+	keyboard = append(keyboard, []InlineKeyboardButton{
+		{Text: "🔴 Blokir Halaman Ini", CallbackData: fmt.Sprintf("cb:bsvc_blk:block:%s:%d", category, page)},
+		{Text: "🟢 Buka Halaman Ini", CallbackData: fmt.Sprintf("cb:bsvc_blk:unblock:%s:%d", category, page)},
+	})
+
+	// 5. Back to Main Menu
 	keyboard = append(keyboard, []InlineKeyboardButton{
 		{Text: "🔙 Kembali ke Menu Utama", CallbackData: "cb:menu"},
 	})
 
 	totalBlocked := len(blockedMap)
-	msg := fmt.Sprintf("🚫 *DAFTAR BLOCKED SERVICES (Hal %d/%d)*\n\n"+
-		"Ketuk tombol layanan untuk *Blokir* (🔴) atau *Izinkan* (🟢) seketika di seluruh jaringan:\n\n"+
-		"• 🔴 = *Sedang DIBLOKIR*\n"+
-		"• 🟢 = *DIIZINKAN (Normal)*\n"+
-		"• *Total Layanan Terblokir:* `%d layanan`",
-		page, totalPages, totalBlocked,
+	catName := "Semua Layanan"
+	for _, c := range cats {
+		if c.id == category {
+			catName = c.label
+			break
+		}
+	}
+
+	searchNote := ""
+	if search != "" {
+		searchNote = fmt.Sprintf("🔍 *Pencarian:* `%s`\n", search)
+	}
+
+	msg := fmt.Sprintf("🚫 *PUSAT KONTROL BLOCKED SERVICES*\n"+
+		"Kontrol langsung toggle switch pemblokiran layanan di seluruh jaringan:\n\n"+
+		"%s"+
+		"📁 *Kategori:* *%s* (Halaman %d/%d)\n"+
+		"• 🔴 = *Sedang DIBLOKIR* (Off di web)\n"+
+		"• 🟢 = *DIIZINKAN* (On di web / Normal)\n"+
+		"• *Total Terblokir Global:* `%d / %d Layanan`\n\n"+
+		"_Ketuk tombol layanan untuk blokir/buka secara instan:_",
+		searchNote, catName, page, totalPages, totalBlocked, len(allServices),
 	)
 
 	return msg, &InlineKeyboardMarkup{InlineKeyboard: keyboard}
@@ -419,7 +641,7 @@ func (b *Bot) BuildBlockedServicesMenu(page int) (string, *InlineKeyboardMarkup)
 
 // SendServicesMenu sends the interactive paginated blocked services menu.
 func (b *Bot) SendServicesMenu(chatID string) error {
-	msg, markup := b.BuildBlockedServicesMenu(1)
+	msg, markup := b.BuildBlockedServicesMenu("all", 1, "")
 	return b.sendMessageWithMarkup(chatID, msg, markup)
 }
 
@@ -774,17 +996,11 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, messageID int
 		return
 	}
 
-	// Handle blocked services pagination
-	if strings.HasPrefix(data, "cb:bsvc_page:") {
-		parts := strings.Split(data, ":")
-		page := 1
-		if len(parts) >= 3 {
-			if p, err := strconv.Atoi(parts[2]); err == nil {
-				page = p
-			}
-		}
-		b.answerCallbackQuery(callbackID, fmt.Sprintf("Halaman %d", page))
-		text, markup := b.BuildBlockedServicesMenu(page)
+	// Handle blocked services category change
+	if strings.HasPrefix(data, "cb:bsvc_c:") {
+		cat := strings.TrimPrefix(data, "cb:bsvc_c:")
+		b.answerCallbackQuery(callbackID, "Kategori: "+cat)
+		text, markup := b.BuildBlockedServicesMenu(cat, 1, "")
 		if messageID > 0 {
 			_ = b.EditMessageText(chatID, messageID, text, markup)
 		} else {
@@ -793,30 +1009,37 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, messageID int
 		return
 	}
 
-	// Handle blocked services refresh
-	if strings.HasPrefix(data, "cb:bsvc_refresh:") {
+	// Handle blocked services page navigation & refresh
+	if strings.HasPrefix(data, "cb:bsvc_p:") {
 		parts := strings.Split(data, ":")
+		cat := "all"
 		page := 1
 		if len(parts) >= 3 {
-			if p, err := strconv.Atoi(parts[2]); err == nil {
+			cat = parts[2]
+		}
+		if len(parts) >= 4 {
+			if p, err := strconv.Atoi(parts[3]); err == nil {
 				page = p
 			}
 		}
-		b.answerCallbackQuery(callbackID, "🔄 Diperbarui")
-		text, markup := b.BuildBlockedServicesMenu(page)
+		b.answerCallbackQuery(callbackID, fmt.Sprintf("Halaman %d", page))
+		text, markup := b.BuildBlockedServicesMenu(cat, page, "")
 		if messageID > 0 {
 			_ = b.EditMessageText(chatID, messageID, text, markup)
+		} else {
+			_ = b.sendMessageWithMarkup(chatIDStr, text, markup)
 		}
 		return
 	}
 
 	// Handle blocked services individual toggle
-	if strings.HasPrefix(data, "cb:bsvc_toggle:") {
+	if strings.HasPrefix(data, "cb:bsvc_t:") {
 		parts := strings.Split(data, ":")
-		if len(parts) >= 4 {
+		if len(parts) >= 5 {
 			svcID := parts[2]
+			cat := parts[3]
 			page := 1
-			if p, err := strconv.Atoi(parts[3]); err == nil {
+			if p, err := strconv.Atoi(parts[4]); err == nil {
 				page = p
 			}
 
@@ -825,15 +1048,77 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, messageID int
 				if err != nil {
 					b.answerCallbackQuery(callbackID, fmt.Sprintf("❌ Gagal: %s", err.Error()))
 				} else if blocked {
-					b.answerCallbackQuery(callbackID, fmt.Sprintf("🔴 %s BERHASIL DIBLOKIR!", svcID))
+					b.answerCallbackQuery(callbackID, fmt.Sprintf("🔴 %s DIBLOKIR!", svcID))
 				} else {
-					b.answerCallbackQuery(callbackID, fmt.Sprintf("🟢 %s DIIZINKAN kembali!", svcID))
+					b.answerCallbackQuery(callbackID, fmt.Sprintf("🟢 %s DIIZINKAN!", svcID))
 				}
 			} else {
 				b.answerCallbackQuery(callbackID, "⚠️ Handler belum siap.")
 			}
 
-			text, markup := b.BuildBlockedServicesMenu(page)
+			text, markup := b.BuildBlockedServicesMenu(cat, page, "")
+			if messageID > 0 {
+				_ = b.EditMessageText(chatID, messageID, text, markup)
+			}
+		}
+		return
+	}
+
+	// Handle blocked services bulk page block / unblock
+	if strings.HasPrefix(data, "cb:bsvc_blk:") {
+		parts := strings.Split(data, ":")
+		if len(parts) >= 5 {
+			action := parts[2]
+			cat := parts[3]
+			page := 1
+			if p, err := strconv.Atoi(parts[4]); err == nil {
+				page = p
+			}
+
+			blockState := (action == "block")
+
+			var allServices []BlockedServiceItem
+			if callbacks.GetAllAvailableServicesFunc != nil {
+				allServices = callbacks.GetAllAvailableServicesFunc()
+			}
+			if len(allServices) == 0 {
+				allServices = DefaultPopularBlockedServices
+			}
+
+			var filtered []BlockedServiceItem
+			for _, s := range allServices {
+				if cat != "all" {
+					if cat == "dating" {
+						if s.GroupID != "dating" && s.GroupID != "gambling" {
+							continue
+						}
+					} else if s.GroupID != cat {
+						continue
+					}
+				}
+				filtered = append(filtered, s)
+			}
+
+			pageSize := 8
+			startIdx := (page - 1) * pageSize
+			endIdx := startIdx + pageSize
+			if endIdx > len(filtered) {
+				endIdx = len(filtered)
+			}
+
+			if startIdx < len(filtered) && callbacks.SetBlockedServiceFunc != nil {
+				for _, s := range filtered[startIdx:endIdx] {
+					_ = callbacks.SetBlockedServiceFunc(s.ID, blockState)
+				}
+			}
+
+			if blockState {
+				b.answerCallbackQuery(callbackID, "🔴 Halaman ini DIBLOKIR!")
+			} else {
+				b.answerCallbackQuery(callbackID, "🟢 Halaman ini DIIZINKAN!")
+			}
+
+			text, markup := b.BuildBlockedServicesMenu(cat, page, "")
 			if messageID > 0 {
 				_ = b.EditMessageText(chatID, messageID, text, markup)
 			}
@@ -897,7 +1182,7 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, messageID int
 		}
 	case "cb:services_menu":
 		b.answerCallbackQuery(callbackID, "🚫 Membuka Blocked Services...")
-		text, markup := b.BuildBlockedServicesMenu(1)
+		text, markup := b.BuildBlockedServicesMenu("all", 1, "")
 		if messageID > 0 {
 			_ = b.EditMessageText(chatID, messageID, text, markup)
 		} else {
@@ -927,10 +1212,10 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, messageID int
 			"• `/guide` — 📱 Setup Guide & Panduan Pasang DNS\n" +
 			"• `/netinfo` — 🌐 Info Jaringan, Port & Protokol\n" +
 			"• `/safemode` — 🛡️ Toggle SafeSearch & Mode Keluarga\n" +
-			"• `/services` — 🚫 Menu Blokir Layanan Instan\n" +
+			"• `/services` — 🚫 Menu & Toggle Blocked Services (TikTok, YouTube, Games, dll.)\n" +
 			"• `/lookup <domain>` — 🔍 Cek Status Domain\n" +
-			"• `/unblock <domain>` — Buka blokir domain (contoh: `/unblock reddit.com`)\n" +
-			"• `/block <domain>` — Blokir domain (contoh: `/block tiktok.com`)\n" +
+			"• `/unblock <target>` — Buka blokir domain / layanan (contoh: `/unblock tiktok` atau `/unblock reddit.com`)\n" +
+			"• `/block <target>` — Blokir domain / layanan (contoh: `/block youtube` atau `/block slot.com`)\n" +
 			"• `/pause [menit]` — Jeda filter sementara (contoh: `/pause 15`)\n" +
 			"• `/resume` — Aktifkan kembali filter\n" +
 			"• `/ping` — Uji kecepatan respon server"
@@ -979,10 +1264,10 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 			"• `/guide` — 📱 Setup Guide & Panduan Pasang DNS\n" +
 			"• `/netinfo` — 🌐 Info Jaringan, Port & Protokol\n" +
 			"• `/safemode` — 🛡️ Toggle SafeSearch & Mode Keluarga\n" +
-			"• `/services` — 🚫 Menu Blokir Layanan Instan\n" +
+			"• `/services` — 🚫 Menu & Toggle Blocked Services\n" +
 			"• `/lookup <domain>` — 🔍 Cek Status Domain\n" +
-			"• `/unblock <domain>` — Buka blokir domain seketika\n" +
-			"• `/block <domain>` — Masukkan domain ke blocklist\n" +
+			"• `/unblock <domain/layanan>` — Buka blokir domain/layanan seketika\n" +
+			"• `/block <domain/layanan>` — Masukkan domain/layanan ke blocklist\n" +
 			"• `/pause [menit]` — Jeda filter sementara (default 10 menit)\n" +
 			"• `/resume` — Nyalakan kembali filter adblock\n" +
 			"• `/ping` — Uji responsivitas bot"
@@ -1002,7 +1287,37 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 			_ = b.SendMessage(chatIDStr, "🛡️ Safe Mode diubah.")
 		}
 
-	case "/services", "/blockservice", "🚫 blokir layanan":
+	case "/services", "/blockservice", "/blocked", "/bsvc", "🚫 blokir layanan":
+		if len(parts) > 1 {
+			arg := strings.ToLower(parts[1])
+			switch arg {
+			case "sosmed", "social", "social_network":
+				text, markup := b.BuildBlockedServicesMenu("social_network", 1, "")
+				_ = b.sendMessageWithMarkup(chatIDStr, text, markup)
+			case "stream", "streaming", "video", "musik", "music":
+				text, markup := b.BuildBlockedServicesMenu("streaming", 1, "")
+				_ = b.sendMessageWithMarkup(chatIDStr, text, markup)
+			case "game", "gaming", "games":
+				text, markup := b.BuildBlockedServicesMenu("gaming", 1, "")
+				_ = b.sendMessageWithMarkup(chatIDStr, text, markup)
+			case "chat", "messenger", "pesan":
+				text, markup := b.BuildBlockedServicesMenu("messenger", 1, "")
+				_ = b.sendMessageWithMarkup(chatIDStr, text, markup)
+			case "belanja", "shop", "shopping":
+				text, markup := b.BuildBlockedServicesMenu("shopping", 1, "")
+				_ = b.sendMessageWithMarkup(chatIDStr, text, markup)
+			case "dewasa", "dating", "judi", "gambling", "adult":
+				text, markup := b.BuildBlockedServicesMenu("dating", 1, "")
+				_ = b.sendMessageWithMarkup(chatIDStr, text, markup)
+			case "ai", "llm":
+				text, markup := b.BuildBlockedServicesMenu("ai", 1, "")
+				_ = b.sendMessageWithMarkup(chatIDStr, text, markup)
+			default:
+				text, markup := b.BuildBlockedServicesMenu("all", 1, arg)
+				_ = b.sendMessageWithMarkup(chatIDStr, text, markup)
+			}
+			return
+		}
 		_ = b.SendServicesMenu(chatIDStr)
 
 	case "/lookup", "/check", "/cek", "🔍 cek domain":
@@ -1049,10 +1364,31 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 
 	case "/unblock":
 		if len(parts) < 2 {
-			_ = b.SendMessage(chatIDStr, "⚠️ *Format salah!*\nGunakan: `/unblock nama-domain.com`")
+			_ = b.SendMessage(chatIDStr, "⚠️ *Format salah!*\nGunakan: `/unblock nama-domain.com` atau `/unblock tiktok`")
 			return
 		}
 		target := cleanDomain(parts[1])
+
+		// Check if target matches an official Blocked Service
+		var matchedService *BlockedServiceItem
+		if callbacks.GetAllAvailableServicesFunc != nil {
+			for _, s := range callbacks.GetAllAvailableServicesFunc() {
+				if strings.EqualFold(s.ID, target) || strings.EqualFold(s.Name, target) {
+					matchedService = &s
+					break
+				}
+			}
+		}
+		if matchedService != nil && callbacks.SetBlockedServiceFunc != nil {
+			err := callbacks.SetBlockedServiceFunc(matchedService.ID, false)
+			if err != nil {
+				_ = b.SendMessage(chatIDStr, fmt.Sprintf("❌ *Gagal unblock layanan:* %s", err.Error()))
+			} else {
+				_ = b.SendMessage(chatIDStr, fmt.Sprintf("🟢 *Layanan %s (%s) BERHASIL DIIZINKAN!* ✅\n\nAkses ke %s telah dibuka kembali normal untuk seluruh jaringan.", matchedService.Name, matchedService.ID, matchedService.Name))
+			}
+			return
+		}
+
 		if callbacks.UnblockDomainFunc != nil {
 			res, err := callbacks.UnblockDomainFunc(target)
 			if err != nil {
@@ -1066,10 +1402,31 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 
 	case "/block":
 		if len(parts) < 2 {
-			_ = b.SendMessage(chatIDStr, "⚠️ *Format salah!*\nGunakan: `/block nama-domain.com`")
+			_ = b.SendMessage(chatIDStr, "⚠️ *Format salah!*\nGunakan: `/block nama-domain.com` atau `/block youtube`")
 			return
 		}
 		target := cleanDomain(parts[1])
+
+		// Check if target matches an official Blocked Service
+		var matchedService *BlockedServiceItem
+		if callbacks.GetAllAvailableServicesFunc != nil {
+			for _, s := range callbacks.GetAllAvailableServicesFunc() {
+				if strings.EqualFold(s.ID, target) || strings.EqualFold(s.Name, target) {
+					matchedService = &s
+					break
+				}
+			}
+		}
+		if matchedService != nil && callbacks.SetBlockedServiceFunc != nil {
+			err := callbacks.SetBlockedServiceFunc(matchedService.ID, true)
+			if err != nil {
+				_ = b.SendMessage(chatIDStr, fmt.Sprintf("❌ *Gagal block layanan:* %s", err.Error()))
+			} else {
+				_ = b.SendMessage(chatIDStr, fmt.Sprintf("🔴 *Layanan %s (%s) BERHASIL DIBLOKIR!* 🔒\n\nSeluruh perangkat di jaringan sekarang diblokir dari mengakses %s.", matchedService.Name, matchedService.ID, matchedService.Name))
+			}
+			return
+		}
+
 		if callbacks.BlockDomainFunc != nil {
 			res, err := callbacks.BlockDomainFunc(target)
 			if err != nil {
