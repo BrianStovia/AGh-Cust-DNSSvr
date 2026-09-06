@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os/exec"
 	"runtime"
 	"time"
 
@@ -95,6 +96,20 @@ func (web *webAPI) initTelegramCallbacks() {
 			return fmt.Sprintf("📊 *Ringkasan Statistik DNS*\n\n" +
 				"Untuk melihat grafik interaktif dan peta GeoIP, buka web dashboard: https://dns.brianstovia.com",
 			)
+		},
+
+		TriggerUpdateFunc: func() (string, error) {
+			if runtime.GOOS == "windows" {
+				return "Fitur auto-update via bot saat ini dirancang untuk Linux/Debian VPS.", nil
+			}
+
+			go func() {
+				time.Sleep(1500 * time.Millisecond)
+				cmd := exec.Command("bash", "-c", "curl -sSL https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/update-debian.sh | bash")
+				_ = cmd.Run()
+			}()
+
+			return "🚀 *Proses Update DNS Server Dimulai!*\n\nSedang mengunduh biner AdGuard Home terbaru dari GitHub dan me-restart service...\n\n_Bot akan aktif kembali dalam beberapa detik setelah service selesai dimuat._", nil
 		},
 	})
 }
