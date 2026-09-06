@@ -143,6 +143,12 @@ func (web *webAPI) handlePostTelegramConfig(w http.ResponseWriter, r *http.Reque
 		"admin_chat_id", req.AdminChatID,
 	)
 
+	config.Lock()
+	config.Telegram = &req
+	config.Unlock()
+
+	web.confModifier.Apply(ctx)
+
 	resp := bot.GetStatus()
 	aghhttp.WriteJSONResponseOK(ctx, l, w, r, resp)
 }

@@ -18,12 +18,12 @@ import (
 
 // Config represents the Telegram Bot configuration.
 type Config struct {
-	Enabled           bool   `json:"enabled"`
-	BotToken          string `json:"bot_token"`
-	AdminChatID       string `json:"admin_chat_id"`
-	NotifyThreats     bool   `json:"notify_threats"`
-	NotifyDDoS        bool   `json:"notify_ddos"`
-	NotifyDailyReport bool   `json:"notify_daily_report"`
+	Enabled           bool   `json:"enabled" yaml:"enabled"`
+	BotToken          string `json:"bot_token" yaml:"bot_token"`
+	AdminChatID       string `json:"admin_chat_id" yaml:"admin_chat_id"`
+	NotifyThreats     bool   `json:"notify_threats" yaml:"notify_threats"`
+	NotifyDDoS        bool   `json:"notify_ddos" yaml:"notify_ddos"`
+	NotifyDailyReport bool   `json:"notify_daily_report" yaml:"notify_daily_report"`
 }
 
 // BotCallbacks provides hooks into the AdGuard Home core engine.

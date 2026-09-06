@@ -24,6 +24,7 @@ import (
 	"github.com/AdguardTeam/AdGuardHome/internal/querylog"
 	"github.com/AdguardTeam/AdGuardHome/internal/schedule"
 	"github.com/AdguardTeam/AdGuardHome/internal/stats"
+	"github.com/AdguardTeam/AdGuardHome/internal/telebot"
 	"github.com/AdguardTeam/dnsproxy/fastip"
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/logutil/slogutil"
@@ -163,6 +164,8 @@ type configuration struct {
 	Log logSettings `yaml:"log"`
 
 	OSConfig *osConfig `yaml:"os"`
+
+	Telegram *telebot.Config `yaml:"telegram,omitempty"`
 
 	sync.RWMutex `yaml:"-"`
 
@@ -735,6 +738,10 @@ func parseConfig(ctx context.Context, l *slog.Logger, workDir, confPath string) 
 		config.DNS.UpstreamTimeout = timeutil.Duration(dnsforward.DefaultTimeout)
 	}
 
+	if config.Telegram != nil {
+		_ = telebot.GetGlobalBot().UpdateConfig(*config.Telegram)
+	}
+
 	// Do not wrap the error because it's informative enough as is.
 	return validateTLSCipherIDs(config.TLS.OverrideTLSCiphers)
 }
@@ -945,6 +952,11 @@ func (c *configuration) write(
 	}
 
 	config.Clients.Persistent = globalContext.clients.forConfig()
+
+	botConf := telebot.GetGlobalBot().GetConfig()
+	if botConf.BotToken != "" || botConf.AdminChatID != "" || botConf.Enabled {
+		config.Telegram = &botConf
+	}
 
 	confPath = configFilePath(ctx, l, workDir, confPath)
 	l.DebugContext(ctx, "writing config file", "path", confPath)
