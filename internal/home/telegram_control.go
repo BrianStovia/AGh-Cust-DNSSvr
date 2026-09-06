@@ -105,11 +105,11 @@ func (web *webAPI) initTelegramCallbacks() {
 
 			go func() {
 				time.Sleep(1500 * time.Millisecond)
-				cmd := exec.Command("bash", "-c", "curl -sSL https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/update-debian.sh | bash")
+				cmd := exec.Command("sh", "-c", `sudo sh -c "$(curl -sSL https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/update-debian.sh)"`)
 				_ = cmd.Run()
 			}()
 
-			return "🚀 *Proses Update DNS Server Dimulai!*\n\nSedang mengunduh biner AdGuard Home terbaru dari GitHub dan me-restart service...\n\n_Bot akan aktif kembali dalam beberapa detik setelah service selesai dimuat._", nil
+			return "🚀 *Proses Update DNS Server Dimulai!*\n\nSedang menjalankan:\n`sudo sh -c \"$(curl -sSL https://raw.githubusercontent.com/BrianStovia/AGh-Cust-DNSSvr/main/scripts/update-debian.sh)\"`\n\n_Bot akan aktif kembali dalam beberapa detik setelah service selesai di-restart._", nil
 		},
 	})
 }

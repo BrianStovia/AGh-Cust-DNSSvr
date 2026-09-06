@@ -247,7 +247,7 @@ func (b *Bot) SendInteractiveMenu(chatID, text string) error {
 				{Text: "▶️ Resume Proteksi", CallbackData: "cb:resume"},
 			},
 			{
-				{Text: "🚀 Update Server", CallbackData: "cb:update_confirm"},
+				{Text: "🚀 Update Server", CallbackData: "cb:update"},
 				{Text: "🏓 Ping Server", CallbackData: "cb:ping"},
 			},
 			{
@@ -583,19 +583,8 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, data string) 
 	case "cb:ping":
 		b.answerCallbackQuery(callbackID, "Pong! Server responsif")
 		_ = b.SendMessage(chatIDStr, fmt.Sprintf("🏓 *Pong!*\nServer AdGuard Home aktif.\nWaktu: `%s`", time.Now().Format("15:04:05 WIB")))
-	case "cb:update_confirm":
-		b.answerCallbackQuery(callbackID, "Konfirmasi Update")
-		confirmMarkup := &InlineKeyboardMarkup{
-			InlineKeyboard: [][]InlineKeyboardButton{
-				{
-					{Text: "✅ Ya, Update Sekarang!", CallbackData: "cb:update_execute"},
-					{Text: "❌ Batal", CallbackData: "cb:menu"},
-				},
-			},
-		}
-		_ = b.sendMessageWithMarkup(chatIDStr, "🚀 *Konfirmasi Update DNS Server*\n\nApakah Anda yakin ingin memperbarui AdGuard Home ke versi / commit terbaru dari GitHub?\n\n_Proses akan mengunduh biner terbaru dan me-restart service secara otomatis._", confirmMarkup)
-	case "cb:update_execute":
-		b.answerCallbackQuery(callbackID, "Memulai update...")
+	case "cb:update", "cb:update_confirm", "cb:update_execute":
+		b.answerCallbackQuery(callbackID, "🚀 Memulai update...")
 		if callbacks.TriggerUpdateFunc != nil {
 			msg, err := callbacks.TriggerUpdateFunc()
 			if err != nil {
@@ -604,7 +593,7 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, data string) 
 				_ = b.SendMessage(chatIDStr, msg)
 			}
 		} else {
-			_ = b.SendMessage(chatIDStr, "❌ *Error:* Handler update tidak tersedia.")
+			_ = b.SendMessage(chatIDStr, "❌ *Error:* Handler update tidak tersedia pada server ini.")
 		}
 	case "cb:menu":
 		b.answerCallbackQuery(callbackID, "Membuka Menu")
@@ -674,15 +663,16 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 		_ = b.SendMessage(chatIDStr, fmt.Sprintf("🏓 *Pong!*\nServer AdGuard Home aktif dan responsif.\nWaktu: `%s`", time.Now().Format("15:04:05 WIB")))
 
 	case "/update", "update", "🚀 update", "🚀 update server":
-		confirmMarkup := &InlineKeyboardMarkup{
-			InlineKeyboard: [][]InlineKeyboardButton{
-				{
-					{Text: "✅ Ya, Update Sekarang!", CallbackData: "cb:update_execute"},
-					{Text: "❌ Batal", CallbackData: "cb:menu"},
-				},
-			},
+		if callbacks.TriggerUpdateFunc != nil {
+			msg, err := callbacks.TriggerUpdateFunc()
+			if err != nil {
+				_ = b.SendMessage(chatIDStr, fmt.Sprintf("❌ *Gagal Update:* %s", err.Error()))
+			} else {
+				_ = b.SendMessage(chatIDStr, msg)
+			}
+		} else {
+			_ = b.SendMessage(chatIDStr, "❌ *Error:* Handler update tidak tersedia pada server ini.")
 		}
-		_ = b.sendMessageWithMarkup(chatIDStr, "🚀 *Konfirmasi Update DNS Server*\n\nApakah Anda yakin ingin memperbarui AdGuard Home ke versi / commit terbaru dari GitHub?\n\n_Proses akan mengunduh biner terbaru dan me-restart service secara otomatis._", confirmMarkup)
 
 	case "/status", "status", "📊 status":
 		if callbacks.GetStatusFunc != nil {
