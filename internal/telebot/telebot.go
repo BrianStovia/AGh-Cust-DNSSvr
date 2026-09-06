@@ -44,18 +44,21 @@ type BotCallbacks struct {
 	GetAllAvailableServicesFunc func() []BlockedServiceItem
 	ToggleBlockedServiceFunc    func(id string) (bool, error)
 	SetBlockedServiceFunc       func(id string, block bool) error
+	RunSpeedtestFunc            func() string
+	GetDailyReportFunc          func() string
 }
 
 // Status represents the runtime status of the bot.
 type Status struct {
-	Enabled         bool   `json:"enabled"`
-	Connected       bool   `json:"connected"`
-	BotUsername     string `json:"bot_username"`
-	AdminChatID     string `json:"admin_chat_id"`
-	NotifyThreats   bool   `json:"notify_threats"`
-	NotifyDDoS      bool   `json:"notify_ddos"`
-	TotalAlertsSent uint64 `json:"total_alerts_sent"`
-	LastAlertTime   string `json:"last_alert_time"`
+	Enabled           bool   `json:"enabled"`
+	Connected         bool   `json:"connected"`
+	BotUsername       string `json:"bot_username"`
+	AdminChatID       string `json:"admin_chat_id"`
+	NotifyThreats     bool   `json:"notify_threats"`
+	NotifyDDoS        bool   `json:"notify_ddos"`
+	NotifyDailyReport bool   `json:"notify_daily_report"`
+	TotalAlertsSent   uint64 `json:"total_alerts_sent"`
+	LastAlertTime     string `json:"last_alert_time"`
 }
 
 // InlineKeyboardButton represents an interactive button in Telegram.
@@ -180,6 +183,7 @@ func (b *Bot) Start() error {
 	}
 
 	go b.pollLoop()
+	go b.dailyReportScheduler()
 	return nil
 }
 
@@ -220,14 +224,15 @@ func (b *Bot) GetStatus() Status {
 	defer b.mu.RUnlock()
 
 	return Status{
-		Enabled:         b.conf.Enabled,
-		Connected:       b.connected,
-		BotUsername:     b.botUsername,
-		AdminChatID:     b.conf.AdminChatID,
-		NotifyThreats:   b.conf.NotifyThreats,
-		NotifyDDoS:      b.conf.NotifyDDoS,
-		TotalAlertsSent: atomic.LoadUint64(&b.alertsSent),
-		LastAlertTime:   b.lastAlert,
+		Enabled:           b.conf.Enabled,
+		Connected:         b.connected,
+		BotUsername:       b.botUsername,
+		AdminChatID:       b.conf.AdminChatID,
+		NotifyThreats:     b.conf.NotifyThreats,
+		NotifyDDoS:        b.conf.NotifyDDoS,
+		NotifyDailyReport: b.conf.NotifyDailyReport,
+		TotalAlertsSent:   atomic.LoadUint64(&b.alertsSent),
+		LastAlertTime:     b.lastAlert,
 	}
 }
 
@@ -253,6 +258,10 @@ func (b *Bot) SendInteractiveMenu(chatID, text string) error {
 			},
 			{
 				{Text: "⚡ Optimalkan Server", CallbackData: "cb:optimize"},
+				{Text: "🚀 Speedtest Server", CallbackData: "cb:speedtest"},
+			},
+			{
+				{Text: "📊 Laporan Harian", CallbackData: "cb:daily_report"},
 				{Text: "📱 Setup Guide", CallbackData: "cb:guide"},
 			},
 			{
@@ -788,6 +797,8 @@ func (b *Bot) setMyCommands() error {
 		"commands": []map[string]string{
 			{"command": "menu", "description": "📱 Buka Menu Tombol Interaktif"},
 			{"command": "status", "description": "📊 Lihat Status Server & RAM"},
+			{"command": "speedtest", "description": "🚀 Uji Kecepatan Server (Speedtest)"},
+			{"command": "report", "description": "📊 Laporan Harian (Daily Brief)"},
 			{"command": "stats", "description": "📈 Ringkasan Statistik DNS"},
 			{"command": "clean", "description": "⚡ Optimasi RAM & One-Click Clean"},
 			{"command": "guide", "description": "📱 Setup Guide / Panduan Pasang DNS"},
@@ -865,6 +876,75 @@ func (b *Bot) SendDDoSAlert(clientIP string, qps int) {
 
 	go func() {
 		_ = b.SendMessage(chatID, msg)
+	}()
+}
+
+// dailyReportScheduler periodically pushes a daily executive report at 07:00 WIB.
+func (b *Bot) dailyReportScheduler() {
+	var lastSentDay int = -1
+
+	ticker := time.NewTicker(45 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-b.ctx.Done():
+			return
+		case <-ticker.C:
+			b.mu.RLock()
+			enabled := b.running && b.conf.Enabled && b.conf.NotifyDailyReport && b.conf.AdminChatID != ""
+			adminChatID := b.conf.AdminChatID
+			b.mu.RUnlock()
+
+			if !enabled {
+				continue
+			}
+
+			now := time.Now()
+			// Check if it's 07:00 AM (Hour 7, minute < 5) and hasn't sent today
+			if now.Hour() == 7 && now.Minute() < 5 && now.Day() != lastSentDay {
+				lastSentDay = now.Day()
+				b.logger.Info("sending scheduled daily executive report to Telegram", "chat_id", adminChatID)
+				b.SendDailyReport(adminChatID)
+			}
+		}
+	}
+}
+
+// SendDailyReport compiles and sends the comprehensive daily executive brief.
+func (b *Bot) SendDailyReport(chatID string) {
+	b.mu.RLock()
+	callbacks := b.callbacks
+	b.mu.RUnlock()
+
+	var reportMsg string
+	if callbacks.GetDailyReportFunc != nil {
+		reportMsg = callbacks.GetDailyReportFunc()
+	} else if callbacks.GetStatsSummaryFunc != nil {
+		reportMsg = callbacks.GetStatsSummaryFunc()
+	} else {
+		reportMsg = "📊 *Laporan Harian AdGuard Home*\n\nServer beroperasi normal dengan proteksi aktif."
+	}
+
+	_ = b.SendMessage(chatID, reportMsg)
+}
+
+// RunSpeedtestAsync executes the speedtest in the background and sends progress & result to chat.
+func (b *Bot) RunSpeedtestAsync(chatID string) {
+	b.mu.RLock()
+	callbacks := b.callbacks
+	b.mu.RUnlock()
+
+	_ = b.SendMessage(chatID, "🚀 *Memulai Uji Kecepatan Jaringan Server...*\n\n_Sedang mengukur Ping, Jitter, Download & Upload (estimasi 5-8 detik)..._")
+
+	go func() {
+		var resultText string
+		if callbacks.RunSpeedtestFunc != nil {
+			resultText = callbacks.RunSpeedtestFunc()
+		} else {
+			resultText = "⚠️ Modul speedtest belum terhubung."
+		}
+		_ = b.SendMessage(chatID, resultText)
 	}()
 }
 
@@ -1146,6 +1226,12 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, messageID int
 		if callbacks.GetStatsSummaryFunc != nil {
 			_ = b.SendMessage(chatIDStr, callbacks.GetStatsSummaryFunc())
 		}
+	case "cb:speedtest":
+		b.answerCallbackQuery(callbackID, "🚀 Menjalankan Speedtest...")
+		b.RunSpeedtestAsync(chatIDStr)
+	case "cb:daily_report":
+		b.answerCallbackQuery(callbackID, "📊 Memuat Laporan Harian...")
+		b.SendDailyReport(chatIDStr)
 	case "cb:pause_10":
 		b.answerCallbackQuery(callbackID, "Proteksi dijeda 10 menit")
 		if callbacks.PauseProtectionFunc != nil {
@@ -1216,6 +1302,8 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, messageID int
 		msg := "📖 *Panduan Perintah AdGuard Home Bot*\n\n" +
 			"• `/menu` — Tampilkan menu tombol interaktif\n" +
 			"• `/status` — Status server, RAM, Uptime & Klien\n" +
+			"• `/speedtest` — 🚀 Uji Kecepatan Jaringan Server (Download/Upload/Ping)\n" +
+			"• `/report` — 📊 Laporan Rekap Harian (Executive Brief)\n" +
 			"• `/stats` — Statistik query & top domain\n" +
 			"• `/clean` — ⚡ Optimasi RAM & One-Click Clean\n" +
 			"• `/guide` — 📱 Setup Guide & Panduan Pasang DNS\n" +
@@ -1268,6 +1356,8 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 		msg := "📖 *Panduan Perintah AdGuard Home Bot*\n\n" +
 			"• `/menu` — Buka menu tombol interaktif\n" +
 			"• `/status` — Lihat status server, RAM, & Uptime\n" +
+			"• `/speedtest` — 🚀 Uji Kecepatan Jaringan Server (Speedtest)\n" +
+			"• `/report` — 📊 Laporan Rekap Harian (Executive Brief)\n" +
 			"• `/stats` — Ringkasan query & top domain\n" +
 			"• `/clean` — ⚡ Optimasi RAM & One-Click Clean\n" +
 			"• `/guide` — 📱 Setup Guide & Panduan Pasang DNS\n" +
@@ -1281,6 +1371,12 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 			"• `/resume` — Nyalakan kembali filter adblock\n" +
 			"• `/ping` — Uji responsivitas bot"
 		_ = b.SendMessage(chatIDStr, msg)
+
+	case "/speedtest", "/speed", "speedtest", "🚀 speedtest server", "🚀 speedtest":
+		b.RunSpeedtestAsync(chatIDStr)
+
+	case "/report", "/daily", "/ringkasan", "report", "daily", "📊 laporan harian", "laporan":
+		b.SendDailyReport(chatIDStr)
 
 	case "/netinfo", "/server", "/ip", "🌐 info server & ip":
 		if callbacks.GetServerInfoFunc != nil {

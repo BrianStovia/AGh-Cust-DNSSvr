@@ -103,6 +103,9 @@ type Interface interface {
 
 	// ShouldCount returns true if request for the host should be counted.
 	ShouldCount(host string, qType, qClass uint16, ids []string) bool
+
+	// GetData returns stats response for the given lookback limit (in hours).
+	GetData(limit uint32) (resp *StatsResp, ok bool)
 }
 
 // StatsCtx collects the statistics and flushes it to the database.  Its default
@@ -345,6 +348,11 @@ func (s *StatsCtx) TopClientsIP(maxCount uint) (ips []netip.Addr) {
 	}
 
 	return ips
+}
+
+// GetData implements the Interface for *StatsCtx.
+func (s *StatsCtx) GetData(limit uint32) (resp *StatsResp, ok bool) {
+	return s.getData(limit)
 }
 
 // deleteOldUnits walks the buckets available to tx and deletes old units.  It

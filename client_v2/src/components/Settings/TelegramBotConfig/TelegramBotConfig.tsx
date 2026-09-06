@@ -217,6 +217,21 @@ export const TelegramBotConfig = () => {
                         style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                     />
                 </div>
+
+                <div class={s.switchRow}>
+                    <div class={s.switchText}>
+                        <span class={s.switchLabel}>📊 Laporan Infografis Harian (Daily Executive Brief)</span>
+                        <span class={s.switchDesc}>
+                            Kirim ringkasan otomatis setiap pukul 07:00 WIB (Total query, iklan diblokir, kuota hemat, top klien & server health).
+                        </span>
+                    </div>
+                    <input
+                        type="checkbox"
+                        checked={notifyDailyReport()}
+                        onChange={(e) => setNotifyDailyReport(e.currentTarget.checked)}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                </div>
             </div>
 
             {/* Commands Guide CheatSheet */}
@@ -226,22 +241,42 @@ export const TelegramBotConfig = () => {
             <table class={s.commandsTable}>
                 <thead>
                     <tr>
-                        <th style={{ width: "200px" }}>Perintah</th>
+                        <th style={{ width: "220px" }}>Perintah</th>
                         <th>Fungsi</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
+                        <td><span class={s.commandCode}>/speedtest</span></td>
+                        <td>🚀 Uji kecepatan koneksi internet server (Download, Upload, Ping & Jitter).</td>
+                    </tr>
+                    <tr>
+                        <td><span class={s.commandCode}>/report</span></td>
+                        <td>📊 Laporan ringkasan rekap 24 jam (Total query, % blokir, kuota hemat & top domain).</td>
+                    </tr>
+                    <tr>
                         <td><span class={s.commandCode}>/status</span></td>
                         <td>Melihat status server, Uptime, penggunaan RAM & CPU secara live.</td>
                     </tr>
                     <tr>
-                        <td><span class={s.commandCode}>/unblock &lt;domain&gt;</span></td>
-                        <td>Membuka blokir domain seketika (Contoh: <code>/unblock reddit.com</code>).</td>
+                        <td><span class={s.commandCode}>/clean</span></td>
+                        <td>⚡ Optimasi RAM & One-Click Garbage Collection untuk performa maksimal.</td>
                     </tr>
                     <tr>
-                        <td><span class={s.commandCode}>/block &lt;domain&gt;</span></td>
-                        <td>Memasukkan domain ke daftar blokir saat itu juga.</td>
+                        <td><span class={s.commandCode}>/services</span></td>
+                        <td>🚫 Buka menu kendali toggle switch pemblokiran TikTok, YouTube, Games, dll.</td>
+                    </tr>
+                    <tr>
+                        <td><span class={s.commandCode}>/lookup &lt;domain&gt;</span></td>
+                        <td>🔍 Cek status blokir domain dan uji latensi DNS (Contoh: <code>/lookup netflix.com</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><span class={s.commandCode}>/unblock &lt;domain/layanan&gt;</span></td>
+                        <td>Membuka blokir domain atau layanan seketika (Contoh: <code>/unblock tiktok</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><span class={s.commandCode}>/block &lt;domain/layanan&gt;</span></td>
+                        <td>Memasukkan domain atau layanan ke daftar blokir saat itu juga.</td>
                     </tr>
                     <tr>
                         <td><span class={s.commandCode}>/pause [menit]</span></td>
@@ -250,6 +285,10 @@ export const TelegramBotConfig = () => {
                     <tr>
                         <td><span class={s.commandCode}>/resume</span></td>
                         <td>Mengaktifkan kembali seluruh filter adblock.</td>
+                    </tr>
+                    <tr>
+                        <td><span class={s.commandCode}>/guide</span></td>
+                        <td>📱 Panduan cara pasang DNS di Android, iOS, Windows, macOS & Router.</td>
                     </tr>
                     <tr>
                         <td><span class={s.commandCode}>/ping</span></td>

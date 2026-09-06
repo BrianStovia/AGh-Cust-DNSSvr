@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/AdguardTeam/AdGuardHome/internal/aghhttp"
+	"github.com/AdguardTeam/AdGuardHome/internal/speedtest"
 	"github.com/AdguardTeam/AdGuardHome/internal/telebot"
 )
 
@@ -99,9 +100,149 @@ func (web *webAPI) initTelegramCallbacks() {
 			return nil
 		},
 
+		RunSpeedtestFunc: func() string {
+			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+			defer cancel()
+
+			res, err := speedtest.Run(ctx)
+			if err != nil {
+				return fmt.Sprintf("⚠️ *Speedtest Gagal:* %s", err.Error())
+			}
+			return res.FormatMarkdown()
+		},
+
+		GetDailyReportFunc: func() string {
+			var m runtime.MemStats
+			runtime.ReadMemStats(&m)
+
+			uptime := time.Since(startTime).Round(time.Second)
+			allocMB := float64(m.Alloc) / 1024 / 1024
+			sysMB := float64(m.Sys) / 1024 / 1024
+
+			var numQueries uint64 = 0
+			var numBlocked uint64 = 0
+			var numThreats uint64 = 0
+			var numSafeSearch uint64 = 0
+			var avgTime float64 = 0.0
+			var topClients []string
+			var topBlockedDomains []string
+
+			if globalContext.stats != nil {
+				resp, ok := globalContext.stats.GetData(24)
+				if ok && resp != nil {
+					numQueries = resp.NumDNSQueries
+					numBlocked = resp.NumBlockedFiltering
+					numThreats = resp.NumReplacedSafebrowsing
+					numSafeSearch = resp.NumReplacedSafesearch
+					avgTime = resp.AvgProcessingTime * 1000 // ms
+
+					for i, c := range resp.TopClients {
+						if i >= 3 {
+							break
+						}
+						for ip, count := range c {
+							topClients = append(topClients, fmt.Sprintf("  • `%s`: *%d query*", ip, count))
+						}
+					}
+
+					for i, d := range resp.TopBlocked {
+						if i >= 3 {
+							break
+						}
+						for domain, count := range d {
+							topBlockedDomains = append(topBlockedDomains, fmt.Sprintf("  • `%s`: *%d kali*", domain, count))
+						}
+					}
+				}
+			}
+
+			// Block ratio
+			var blockRatio float64 = 0
+			if numQueries > 0 {
+				blockRatio = (float64(numBlocked) / float64(numQueries)) * 100.0
+			}
+
+			// Estimated data saved (assuming ~85 KB average web ad/tracker payload per blocked query)
+			savedKB := float64(numBlocked) * 85.0
+			savedStr := fmt.Sprintf("%.1f KB", savedKB)
+			if savedKB >= 1024*1024 {
+				savedStr = fmt.Sprintf("%.2f GB", savedKB/(1024*1024))
+			} else if savedKB >= 1024 {
+				savedStr = fmt.Sprintf("%.1f MB", savedKB/1024)
+			}
+
+			topClientsStr := "  _Belum ada data klien_"
+			if len(topClients) > 0 {
+				topClientsStr = strings.Join(topClients, "\n")
+			}
+
+			topBlockedStr := "  _Belum ada domain terblokir_"
+			if len(topBlockedDomains) > 0 {
+				topBlockedStr = strings.Join(topBlockedDomains, "\n")
+			}
+
+			return fmt.Sprintf("📊 *LAPORAN REKAP HARIAN (EXECUTIVE BRIEF)* 🛡️\n"+
+				"📅 *Periode:* 24 Jam Terakhir (%s)\n\n"+
+				"📈 *Aktivitas Query DNS:*\n"+
+				"  • *Total Permintaan:* `%d query`\n"+
+				"  • *Iklan & Tracker Diblokir:* `%d` (*%.1f%%*)\n"+
+				"  • *Estimasi Kuota Dihemat:* `~%s` 💾\n"+
+				"  • *Rata-rata Respon DNS:* `%.2f ms`\n\n"+
+				"🚨 *Keamanan Siber & Konten:*\n"+
+				"  • *Malware & Phishing Ditangkal:* `%d`\n"+
+				"  • *Pencarian Aman (SafeSearch):* `%d`\n\n"+
+				"📱 *Top Perangkat Paling Aktif:*\n"+
+				"%s\n\n"+
+				"🚫 *Top Pelacak/Iklan Paling Agresif:*\n"+
+				"%s\n\n"+
+				"💻 *Kesehatan Server:*\n"+
+				"  • *RAM:* `%.1f MB` (Sys: `%.1f MB`)\n"+
+				"  • *Uptime:* `%s`\n"+
+				"  • *Goroutines:* `%d`\n\n"+
+				"🌐 _AdGuard Home Cyber Shield beroperasi normal melindungi seluruh jaringan Anda._",
+				time.Now().Format("02 Jan 2006"),
+				numQueries,
+				numBlocked, blockRatio,
+				savedStr,
+				avgTime,
+				numThreats,
+				numSafeSearch,
+				topClientsStr,
+				topBlockedStr,
+				allocMB, sysMB,
+				uptime,
+				runtime.NumGoroutine(),
+			)
+		},
+
 		GetStatsSummaryFunc: func() string {
-			return fmt.Sprintf("📊 *Ringkasan Statistik DNS*\n\n" +
-				"Untuk melihat grafik interaktif dan peta GeoIP, buka web dashboard: https://dns.brianstovia.com",
+			var numQueries uint64 = 0
+			var numBlocked uint64 = 0
+			var numThreats uint64 = 0
+			var avgTime float64 = 0.0
+
+			if globalContext.stats != nil {
+				resp, ok := globalContext.stats.GetData(24)
+				if ok && resp != nil {
+					numQueries = resp.NumDNSQueries
+					numBlocked = resp.NumBlockedFiltering
+					numThreats = resp.NumReplacedSafebrowsing
+					avgTime = resp.AvgProcessingTime * 1000
+				}
+			}
+
+			var blockRatio float64 = 0
+			if numQueries > 0 {
+				blockRatio = (float64(numBlocked) / float64(numQueries)) * 100.0
+			}
+
+			return fmt.Sprintf("📈 *RINGKASAN STATISTIK DNS (24 Jam)*\n\n"+
+				"• *Total Permintaan:* `%d query`\n"+
+				"• *Iklan & Pelacak Ditolak:* `%d` (*%.1f%%*)\n"+
+				"• *Ancaman Phishing/Malware:* `%d`\n"+
+				"• *Rata-rata Waktu Respon:* `%.2f ms`\n\n"+
+				"🌐 *Live Web Dashboard:* https://dns.brianstovia.com",
+				numQueries, numBlocked, blockRatio, numThreats, avgTime,
 			)
 		},
 
