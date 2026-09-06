@@ -28,14 +28,18 @@ type Config struct {
 
 // BotCallbacks provides hooks into the AdGuard Home core engine.
 type BotCallbacks struct {
-	GetStatusFunc        func() string
-	UnblockDomainFunc    func(domain string) (string, error)
-	BlockDomainFunc      func(domain string) (string, error)
-	PauseProtectionFunc  func(minutes int) error
-	ResumeProtectionFunc func() error
-	GetStatsSummaryFunc  func() string
-	OptimizeServerFunc   func() string
-	GetSetupGuideFunc    func() string
+	GetStatusFunc         func() string
+	UnblockDomainFunc     func(domain string) (string, error)
+	BlockDomainFunc       func(domain string) (string, error)
+	PauseProtectionFunc   func(minutes int) error
+	ResumeProtectionFunc  func() error
+	GetStatsSummaryFunc   func() string
+	OptimizeServerFunc    func() string
+	GetSetupGuideFunc     func() string
+	GetServerInfoFunc     func() string
+	ToggleSafeModeFunc    func() string
+	QuickBlockServiceFunc func(service string) string
+	DNSLookupFunc         func(domain string) string
 }
 
 // Status represents the runtime status of the bot.
@@ -248,6 +252,14 @@ func (b *Bot) SendInteractiveMenu(chatID, text string) error {
 				{Text: "📱 Setup Guide", CallbackData: "cb:guide"},
 			},
 			{
+				{Text: "🌐 Info Server & IP", CallbackData: "cb:netinfo"},
+				{Text: "🛡️ Toggle Safe Mode", CallbackData: "cb:safemode"},
+			},
+			{
+				{Text: "🚫 Blokir Layanan", CallbackData: "cb:services_menu"},
+				{Text: "🔍 Cek Domain", CallbackData: "cb:lookup_info"},
+			},
+			{
 				{Text: "⏸️ Jeda 10 Menit", CallbackData: "cb:pause_10"},
 				{Text: "▶️ Resume Proteksi", CallbackData: "cb:resume"},
 			},
@@ -259,6 +271,30 @@ func (b *Bot) SendInteractiveMenu(chatID, text string) error {
 	}
 
 	return b.sendMessageWithMarkup(chatID, text, inlineMarkup)
+}
+
+// SendServicesMenu sends the interactive quick-block services menu.
+func (b *Bot) SendServicesMenu(chatID string) error {
+	inlineMarkup := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{
+				{Text: "📱 Blokir TikTok", CallbackData: "cb:svc_tiktok"},
+				{Text: "📺 Blokir YouTube", CallbackData: "cb:svc_youtube"},
+			},
+			{
+				{Text: "📸 Blokir Instagram/FB", CallbackData: "cb:svc_meta"},
+				{Text: "🎮 Blokir Game Online", CallbackData: "cb:svc_games"},
+			},
+			{
+				{Text: "🔞 Blokir Dewasa & Judi", CallbackData: "cb:svc_adult"},
+			},
+			{
+				{Text: "🔙 Kembali ke Menu Utama", CallbackData: "cb:menu"},
+			},
+		},
+	}
+
+	return b.sendMessageWithMarkup(chatID, "🚫 *Pusat Blokir Layanan Instan (1-Klik)*\n\nPilih layanan yang ingin diblokir di seluruh jaringan:", inlineMarkup)
 }
 
 func (b *Bot) sendMessageWithMarkup(chatID, text string, replyMarkup any) error {
@@ -355,7 +391,11 @@ func (b *Bot) setMyCommands() error {
 			{"command": "status", "description": "📊 Lihat Status Server & RAM"},
 			{"command": "stats", "description": "📈 Ringkasan Statistik DNS"},
 			{"command": "clean", "description": "⚡ Optimasi RAM & One-Click Clean"},
-			{"command": "guide", "description": "📱 Setup Guide / Panduan Koneksi DNS"},
+			{"command": "guide", "description": "📱 Setup Guide / Panduan Pasang DNS"},
+			{"command": "netinfo", "description": "🌐 Info Jaringan, Port & IP Server"},
+			{"command": "safemode", "description": "🛡️ Toggle SafeSearch & Mode Keluarga"},
+			{"command": "services", "description": "🚫 Menu Blokir Layanan (TikTok, YouTube)"},
+			{"command": "lookup", "description": "🔍 Cek Status Domain (/lookup domain.com)"},
 			{"command": "unblock", "description": "✅ Buka Blokir Domain (/unblock nama.com)"},
 			{"command": "block", "description": "🛡️ Masukkan Domain ke Blocklist (/block nama.com)"},
 			{"command": "pause", "description": "⏸️ Jeda Filter 10 Menit (/pause 10)"},
@@ -600,6 +640,59 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, data string) 
 		} else {
 			_ = b.SendMessage(chatIDStr, "📱 Buka https://dns.brianstovia.com untuk panduan setup.")
 		}
+	case "cb:netinfo":
+		b.answerCallbackQuery(callbackID, "🌐 Memuat info jaringan & server...")
+		if callbacks.GetServerInfoFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.GetServerInfoFunc())
+		} else {
+			_ = b.SendMessage(chatIDStr, "🌐 Info server sedang dikumpulkan.")
+		}
+	case "cb:safemode":
+		b.answerCallbackQuery(callbackID, "🛡️ Mengubah mode proteksi...")
+		if callbacks.ToggleSafeModeFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.ToggleSafeModeFunc())
+		} else {
+			_ = b.SendMessage(chatIDStr, "🛡️ Safe Mode diubah.")
+		}
+	case "cb:services_menu":
+		b.answerCallbackQuery(callbackID, "🚫 Menu Blokir Layanan")
+		_ = b.SendServicesMenu(chatIDStr)
+	case "cb:svc_tiktok":
+		b.answerCallbackQuery(callbackID, "Memblokir TikTok...")
+		if callbacks.QuickBlockServiceFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.QuickBlockServiceFunc("tiktok"))
+		}
+	case "cb:svc_youtube":
+		b.answerCallbackQuery(callbackID, "Memblokir YouTube...")
+		if callbacks.QuickBlockServiceFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.QuickBlockServiceFunc("youtube"))
+		}
+	case "cb:svc_meta":
+		b.answerCallbackQuery(callbackID, "Memblokir Instagram/FB...")
+		if callbacks.QuickBlockServiceFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.QuickBlockServiceFunc("meta"))
+		}
+	case "cb:svc_games":
+		b.answerCallbackQuery(callbackID, "Memblokir Game Online...")
+		if callbacks.QuickBlockServiceFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.QuickBlockServiceFunc("games"))
+		}
+	case "cb:svc_adult":
+		b.answerCallbackQuery(callbackID, "Memblokir Dewasa & Judi...")
+		if callbacks.QuickBlockServiceFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.QuickBlockServiceFunc("adult"))
+		}
+	case "cb:lookup_info":
+		b.answerCallbackQuery(callbackID, "🔍 Cek Domain")
+		msg := "🔍 *Fitur DNS Lookup & Cek Status Domain*\n\n" +
+			"Ketik perintah:\n" +
+			"`/lookup <nama-domain>`\n\n" +
+			"_Contoh:_\n" +
+			"• `/lookup netflix.com`\n" +
+			"• `/lookup tiktok.com`\n" +
+			"• `/lookup google.com`\n\n" +
+			"Bot akan memeriksa apakah domain tersebut diizinkan/diblokir dan mengecek waktu respon resolusi DNS-nya."
+		_ = b.SendMessage(chatIDStr, msg)
 	case "cb:menu":
 		b.answerCallbackQuery(callbackID, "Membuka Menu")
 		_ = b.SendInteractiveMenu(chatIDStr, "🤖 *Panel Kontrol Interaktif AdGuard Home*\n\nPilih aksi di bawah ini:")
@@ -611,6 +704,10 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, data string) 
 			"• `/stats` — Statistik query & top domain\n" +
 			"• `/clean` — ⚡ Optimasi RAM & One-Click Clean\n" +
 			"• `/guide` — 📱 Setup Guide & Panduan Pasang DNS\n" +
+			"• `/netinfo` — 🌐 Info Jaringan, Port & Protokol\n" +
+			"• `/safemode` — 🛡️ Toggle SafeSearch & Mode Keluarga\n" +
+			"• `/services` — 🚫 Menu Blokir Layanan Instan\n" +
+			"• `/lookup <domain>` — 🔍 Cek Status Domain\n" +
 			"• `/unblock <domain>` — Buka blokir domain (contoh: `/unblock reddit.com`)\n" +
 			"• `/block <domain>` — Blokir domain (contoh: `/block tiktok.com`)\n" +
 			"• `/pause [menit]` — Jeda filter sementara (contoh: `/pause 15`)\n" +
@@ -659,12 +756,44 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 			"• `/stats` — Ringkasan query & top domain\n" +
 			"• `/clean` — ⚡ Optimasi RAM & One-Click Clean\n" +
 			"• `/guide` — 📱 Setup Guide & Panduan Pasang DNS\n" +
+			"• `/netinfo` — 🌐 Info Jaringan, Port & Protokol\n" +
+			"• `/safemode` — 🛡️ Toggle SafeSearch & Mode Keluarga\n" +
+			"• `/services` — 🚫 Menu Blokir Layanan Instan\n" +
+			"• `/lookup <domain>` — 🔍 Cek Status Domain\n" +
 			"• `/unblock <domain>` — Buka blokir domain seketika\n" +
 			"• `/block <domain>` — Masukkan domain ke blocklist\n" +
 			"• `/pause [menit]` — Jeda filter sementara (default 10 menit)\n" +
 			"• `/resume` — Nyalakan kembali filter adblock\n" +
 			"• `/ping` — Uji responsivitas bot"
 		_ = b.SendMessage(chatIDStr, msg)
+
+	case "/netinfo", "/server", "/ip", "🌐 info server & ip":
+		if callbacks.GetServerInfoFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.GetServerInfoFunc())
+		} else {
+			_ = b.SendMessage(chatIDStr, "🌐 Info server sedang dikumpulkan.")
+		}
+
+	case "/safemode", "/family", "🛡️ toggle safe mode":
+		if callbacks.ToggleSafeModeFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.ToggleSafeModeFunc())
+		} else {
+			_ = b.SendMessage(chatIDStr, "🛡️ Safe Mode diubah.")
+		}
+
+	case "/services", "/blockservice", "🚫 blokir layanan":
+		_ = b.SendServicesMenu(chatIDStr)
+
+	case "/lookup", "/check", "/cek", "🔍 cek domain":
+		if len(parts) < 2 {
+			_ = b.SendMessage(chatIDStr, "⚠️ *Format salah!*\nGunakan: `/lookup nama-domain.com` (contoh: `/lookup netflix.com`)")
+			return
+		}
+		if callbacks.DNSLookupFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.DNSLookupFunc(parts[1]))
+		} else {
+			_ = b.SendMessage(chatIDStr, fmt.Sprintf("🔍 Memeriksa domain `%s`...", parts[1]))
+		}
 
 	case "/clean", "/optimize", "clean", "optimize", "⚡ optimalkan server", "⚡ optimalkan sekarang", "bersihkan":
 		if callbacks.OptimizeServerFunc != nil {

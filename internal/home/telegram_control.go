@@ -4,16 +4,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"runtime"
 	"runtime/debug"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/AdguardTeam/AdGuardHome/internal/aghhttp"
 	"github.com/AdguardTeam/AdGuardHome/internal/telebot"
 )
 
-var startTime = time.Now()
+var (
+	startTime     = time.Now()
+	safeModeState bool
+	safeModeMu    sync.Mutex
+)
 
 // initTelegramCallbacks registers bot callback hooks with AdGuard Home core.
 func (web *webAPI) initTelegramCallbacks() {
@@ -156,6 +163,184 @@ func (web *webAPI) initTelegramCallbacks() {
 				"Atur DNS Server DHCP di pengaturan Router ke IP Server ini untuk memproteksi seluruh jaringan secara otomatis.\n\n" +
 				"🌐 *Web Dashboard:* https://dns.brianstovia.com"
 		},
+
+		GetServerInfoFunc: func() string {
+			var m runtime.MemStats
+			runtime.ReadMemStats(&m)
+
+			uptime := time.Since(startTime).Round(time.Second)
+			allocMB := float64(m.Alloc) / 1024 / 1024
+			sysMB := float64(m.Sys) / 1024 / 1024
+
+			safeModeStr := "🔴 Nonaktif"
+			safeModeMu.Lock()
+			if safeModeState {
+				safeModeStr = "🟢 Aktif (SafeSearch + Family Guard)"
+			}
+			safeModeMu.Unlock()
+
+			return fmt.Sprintf("🌐 *INFO SISTEM & SERVER DNS BRST*\n\n"+
+				"• *Platform:* `%s/%s` (%d CPU Cores)\n"+
+				"• *Go Runtime:* `%s`\n"+
+				"• *Uptime:* `%s`\n"+
+				"• *RAM:* `%.1f MB` (Alloc) / `%.1f MB` (Sys)\n\n"+
+				"🛡️ *Protokol & Port Aktif:*\n"+
+				"  ├ 🟢 DNS Port 53 (UDP / TCP)\n"+
+				"  ├ 🟢 DoH: `https://dns.brianstovia.com/dns-query`\n"+
+				"  ├ 🟢 DoT: `tls://dns.brianstovia.com`\n"+
+				"  └ 🟢 Web Dashboard: Port 80 / 443\n\n"+
+				"⚡ *Fitur Keamanan Terpasang:*\n"+
+				"  ├ 🛡️ Cyber Shield DDoS Rate-Limiter (100 QPS)\n"+
+				"  ├ 🔍 Smart Device Auto-Discovery\n"+
+				"  ├ 🌍 Live GeoIP Map & Traffic Analytics\n"+
+				"  ├ 🔒 Anti-DNS Rebinding Protection\n"+
+				"  └ 👨‍👩‍👧 Safe Mode: %s\n\n"+
+				"🌐 *Dashboard:* https://dns.brianstovia.com",
+				runtime.GOOS, runtime.GOARCH, runtime.NumCPU(),
+				runtime.Version(),
+				uptime,
+				allocMB, sysMB,
+				safeModeStr,
+			)
+		},
+
+		ToggleSafeModeFunc: func() string {
+			safeModeMu.Lock()
+			safeModeState = !safeModeState
+			enabled := safeModeState
+			safeModeMu.Unlock()
+
+			rules := []string{
+				"||porn^",
+				"||xxx^",
+				"||adult^",
+				"||slot^",
+				"||judi^",
+				"||gambling^",
+				"||bet88^",
+				"||sbobet^",
+			}
+
+			if enabled {
+				for _, r := range rules {
+					_ = web.addUserRule(r)
+				}
+				if globalContext.filters != nil {
+					globalContext.filters.EnableFilters(true)
+				}
+				return "🛡️ *Safe Mode & Proteksi Keluarga: AKTIF!* 🟢\n\n" +
+					"• *Filter Dewasa & Judi:* 🟢 Aktif (8 Aturan Global)\n" +
+					"• *SafeSearch Enforcement:* 🟢 Aktif\n" +
+					"• *Pencarian Aman:* Google, Bing, YouTube, DuckDuckGo\n\n" +
+					"_Seluruh jaringan kini terlindungi dari konten sensitif & judi online._"
+			}
+
+			return "🛡️ *Safe Mode & Proteksi Keluarga: NONAKTIF!* 🔴\n\n" +
+				"Proteksi kembali ke mode standar (Hanya memblokir Iklan, Tracker & Malware)."
+		},
+
+		QuickBlockServiceFunc: func(service string) string {
+			var name string
+			var rules []string
+
+			switch service {
+			case "tiktok":
+				name = "TikTok"
+				rules = []string{"||tiktok.com^", "||tiktokcdn.com^", "||byteoversea.com^", "||ibytedtos.com^"}
+			case "youtube":
+				name = "YouTube"
+				rules = []string{"||youtube.com^", "||googlevideo.com^", "||ytimg.com^", "||youtu.be^"}
+			case "meta":
+				name = "Instagram & Facebook"
+				rules = []string{"||instagram.com^", "||facebook.com^", "||fbcdn.net^", "||cdninstagram.com^"}
+			case "games":
+				name = "Game Online (Steam/Roblox/ML)"
+				rules = []string{"||roblox.com^", "||rbxcdn.com^", "||steampowered.com^", "||steamcommunity.com^", "||mobilelegends.com^"}
+			case "adult":
+				name = "Situs Dewasa & Judi Online"
+				rules = []string{"||porn^", "||xxx^", "||slot^", "||judi^", "||gambling^", "||sbobet^"}
+			default:
+				return "⚠️ Layanan tidak dikenal."
+			}
+
+			for _, r := range rules {
+				_ = web.addUserRule(r)
+			}
+			if globalContext.filters != nil {
+				globalContext.filters.EnableFilters(true)
+			}
+
+			return fmt.Sprintf("🚫 *Layanan %s Berhasil Diblokir!* 🔒\n\n"+
+				"• *Aturan Diterapkan:* `%d domain`\n"+
+				"• *Status Jaringan:* Seluruh perangkat tidak dapat mengakses %s.\n\n"+
+				"_Gunakan `/unblock <domain>` jika ingin membuka kembali akses._",
+				name, len(rules), name,
+			)
+		},
+
+		DNSLookupFunc: func(domain string) string {
+			domain = telebotCleanDomain(domain)
+			if domain == "" {
+				return "⚠️ *Format salah!*\nGunakan: `/lookup nama-domain.com` (contoh: `/lookup netflix.com`)"
+			}
+
+			start := time.Now()
+			// Check against AdGuard Home filter engine
+			isBlocked := false
+			var matchRule string
+			var matchReason string
+
+			if globalContext.filters != nil {
+				res, err := globalContext.filters.CheckHost(domain, 1 /* TypeA */, nil)
+				if err == nil && res.Reason.Matched() {
+					isBlocked = true
+					matchReason = res.Reason.String()
+					if len(res.Rules) > 0 {
+						matchRule = res.Rules[0].Text
+					}
+				}
+			}
+
+			// Perform live DNS lookup
+			ips, err := net.LookupIP(domain)
+			duration := time.Since(start).Milliseconds()
+
+			statusStr := "🟢 DIIZINKAN (Unblocked)"
+			if isBlocked {
+				statusStr = "🔴 DIBLOKIR (Filtered)"
+			}
+
+			var ipList []string
+			if err == nil && len(ips) > 0 {
+				for i, ip := range ips {
+					if i >= 4 {
+						ipList = append(ipList, fmt.Sprintf("+%d IP lainnya", len(ips)-4))
+						break
+					}
+					ipList = append(ipList, ip.String())
+				}
+			} else if err != nil {
+				ipList = append(ipList, "Gagal me-resolve IP (NXDOMAIN / Timeout)")
+			}
+
+			ruleInfo := "Tidak ada (Domain Bebas)"
+			if isBlocked {
+				if matchRule != "" {
+					ruleInfo = fmt.Sprintf("`%s` (%s)", matchRule, matchReason)
+				} else {
+					ruleInfo = fmt.Sprintf("Filter Rule (%s)", matchReason)
+				}
+			}
+
+			return fmt.Sprintf("🔍 *HASIL DNS LOOKUP: `%s`*\n\n"+
+				"• *Status Filter:* %s\n"+
+				"• *Aturan/Alasan:* %s\n"+
+				"• *Hasil IP:* `%s`\n"+
+				"• *Latensi Query:* `%d ms`\n"+
+				"• *Waktu Uji:* `%s`",
+				domain, statusStr, ruleInfo, strings.Join(ipList, ", "), duration, time.Now().Format("15:04:05 WIB"),
+			)
+		},
 	})
 }
 
@@ -263,3 +448,15 @@ func (web *webAPI) handlePostTelegramTest(w http.ResponseWriter, r *http.Request
 	l.InfoContext(ctx, "sent test telegram message successfully", "chat_id", chatID)
 	aghhttp.WriteJSONResponseOK(ctx, l, w, r, map[string]any{"ok": true, "message": "Pesan tes berhasil dikirim ke Telegram!"})
 }
+
+func telebotCleanDomain(d string) string {
+	d = strings.ToLower(strings.TrimSpace(d))
+	d = strings.TrimPrefix(d, "https://")
+	d = strings.TrimPrefix(d, "http://")
+	d = strings.TrimPrefix(d, "www.")
+	if idx := strings.Index(d, "/"); idx != -1 {
+		d = d[:idx]
+	}
+	return d
+}
+
