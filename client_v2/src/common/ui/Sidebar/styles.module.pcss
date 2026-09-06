@@ -1,58 +1,15 @@
-/* ── BRST Sidebar: Deep navy with glassmorphism shimmer ── */
+/* ── BRST Sidebar (Hidden on top-nav mode) ── */
 
 .sidebarWrapper {
-    display: block;
-    min-width: 240px;
-
-    @media (min-width: 1200px) {
-        align-self: stretch;
-        background: linear-gradient(160deg, var(--brst-bg-deepest, #06090f) 0%, var(--brst-bg-deep, #0a0e17) 100%);
-        border-right: 1px solid var(--brst-border-subtle, rgba(255, 255, 255, 0.08));
-    }
+    display: none !important;
 }
 
 .sidebarContainer {
-    display: none;
-    flex-shrink: 0;
-
-    @media (min-width: 1200px) {
-        display: flex;
-        flex-direction: column;
-        position: sticky;
-        top: 0;
-        width: 100%;
-        max-width: 240px;
-        height: 100vh;
-        padding: 16px 0;
-        overflow-y: auto;
-        z-index: 1;
-        background: linear-gradient(160deg, var(--brst-bg-deepest, #06090f) 0%, var(--brst-bg-deep, #0a0e17) 100%);
-        border-right: 1px solid var(--brst-border-subtle, rgba(255, 255, 255, 0.08));
-    }
-
-    &::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    &::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-        background: rgba(13, 132, 248, 0.2);
-        border-radius: 4px;
-
-        &:hover {
-            background: rgba(13, 132, 248, 0.4);
-        }
-    }
+    display: none !important;
 }
 
 .sidebar {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
+    display: none !important;
 }
 
 .logo {

@@ -75,7 +75,7 @@ export const BrandingConfig = () => {
 
             {/* ── Live Preview Box ── */}
             <div class={s.previewSection}>
-                <div class={s.previewLabel}>Pratinjau Logo Sidebar (Live Preview)</div>
+                <div class={s.previewLabel}>Pratinjau Logo Header / Navbar (Live Preview)</div>
                 <div class={s.previewBox}>
                     <div class={s.previewLogoWrapper}>
                         <div
@@ -107,7 +107,7 @@ export const BrandingConfig = () => {
                         </div>
                     </div>
                     <span class={s.previewHint}>
-                        ✨ Logo dan warna aksen di sidebar akan langsung menyesuaikan.
+                        ✨ Logo dan warna aksen di navbar / header akan langsung menyesuaikan.
                     </span>
                 </div>
             </div>

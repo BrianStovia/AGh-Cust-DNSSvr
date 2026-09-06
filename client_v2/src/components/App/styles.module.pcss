@@ -1,22 +1,16 @@
 .wrapper {
-    display: block;
-
-    @media (min-width: 1200px) {
-        display: flex;
-        flex-direction: row;
-        align-items: flex-start;
-    }
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    min-height: calc(100vh - 64px);
 }
 
 .bodyWrapper {
     width: 100%;
     min-width: 0;
-    min-height: calc(100vh - 64px);
+    flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-
-    @media (min-width: 1200px) {
-        min-height: 100vh;
-    }
 }
