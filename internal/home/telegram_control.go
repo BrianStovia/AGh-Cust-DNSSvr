@@ -239,6 +239,21 @@ func (web *webAPI) initTelegramCallbacks() {
 				"Proteksi kembali ke mode standar (Hanya memblokir Iklan, Tracker & Malware)."
 		},
 
+		GetBlockedServicesFunc: func() []string {
+			if globalContext.filters != nil {
+				return globalContext.filters.GetBlockedServicesIDs()
+			}
+			return nil
+		},
+
+		ToggleBlockedServiceFunc: func(id string) (bool, error) {
+			if globalContext.filters != nil {
+				ctx := context.Background()
+				return globalContext.filters.ToggleBlockedService(ctx, id)
+			}
+			return false, fmt.Errorf("filters uninitialized")
+		},
+
 		QuickBlockServiceFunc: func(service string) string {
 			var name string
 			var rules []string

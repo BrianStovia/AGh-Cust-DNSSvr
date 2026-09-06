@@ -259,3 +259,43 @@ func (d *DNSFilter) handleBlockedServicesUpdate(w http.ResponseWriter, r *http.R
 
 	d.conf.ConfModifier.Apply(ctx)
 }
+
+// GetBlockedServicesIDs returns the list of currently blocked service IDs.
+func (d *DNSFilter) GetBlockedServicesIDs() []string {
+	d.confMu.RLock()
+	defer d.confMu.RUnlock()
+
+	if d.conf.BlockedServices == nil {
+		return nil
+	}
+
+	return slices.Clone(d.conf.BlockedServices.IDs)
+}
+
+// ToggleBlockedService toggles a blocked service ID in the global configuration.
+func (d *DNSFilter) ToggleBlockedService(ctx context.Context, id string) (blocked bool, err error) {
+	d.confMu.Lock()
+	defer d.confMu.Unlock()
+
+	if d.conf.BlockedServices == nil {
+		d.conf.BlockedServices = &BlockedServices{
+			Schedule: schedule.EmptyWeekly(),
+		}
+	}
+
+	idx := slices.Index(d.conf.BlockedServices.IDs, id)
+	if idx != -1 {
+		d.conf.BlockedServices.IDs = slices.Delete(d.conf.BlockedServices.IDs, idx, idx+1)
+		blocked = false
+	} else {
+		d.conf.BlockedServices.IDs = append(d.conf.BlockedServices.IDs, id)
+		blocked = true
+	}
+
+	if d.conf.ConfModifier != nil {
+		d.conf.ConfModifier.Apply(ctx)
+	}
+
+	return blocked, nil
+}
+

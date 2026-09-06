@@ -28,18 +28,20 @@ type Config struct {
 
 // BotCallbacks provides hooks into the AdGuard Home core engine.
 type BotCallbacks struct {
-	GetStatusFunc         func() string
-	UnblockDomainFunc     func(domain string) (string, error)
-	BlockDomainFunc       func(domain string) (string, error)
-	PauseProtectionFunc   func(minutes int) error
-	ResumeProtectionFunc  func() error
-	GetStatsSummaryFunc   func() string
-	OptimizeServerFunc    func() string
-	GetSetupGuideFunc     func() string
-	GetServerInfoFunc     func() string
-	ToggleSafeModeFunc    func() string
-	QuickBlockServiceFunc func(service string) string
-	DNSLookupFunc         func(domain string) string
+	GetStatusFunc            func() string
+	UnblockDomainFunc        func(domain string) (string, error)
+	BlockDomainFunc          func(domain string) (string, error)
+	PauseProtectionFunc      func(minutes int) error
+	ResumeProtectionFunc     func() error
+	GetStatsSummaryFunc      func() string
+	OptimizeServerFunc       func() string
+	GetSetupGuideFunc        func() string
+	GetServerInfoFunc        func() string
+	ToggleSafeModeFunc       func() string
+	QuickBlockServiceFunc    func(service string) string
+	DNSLookupFunc            func(domain string) string
+	GetBlockedServicesFunc   func() []string
+	ToggleBlockedServiceFunc func(id string) (bool, error)
 }
 
 // Status represents the runtime status of the bot.
@@ -273,28 +275,152 @@ func (b *Bot) SendInteractiveMenu(chatID, text string) error {
 	return b.sendMessageWithMarkup(chatID, text, inlineMarkup)
 }
 
-// SendServicesMenu sends the interactive quick-block services menu.
-func (b *Bot) SendServicesMenu(chatID string) error {
-	inlineMarkup := &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
-			{
-				{Text: "📱 Blokir TikTok", CallbackData: "cb:svc_tiktok"},
-				{Text: "📺 Blokir YouTube", CallbackData: "cb:svc_youtube"},
-			},
-			{
-				{Text: "📸 Blokir Instagram/FB", CallbackData: "cb:svc_meta"},
-				{Text: "🎮 Blokir Game Online", CallbackData: "cb:svc_games"},
-			},
-			{
-				{Text: "🔞 Blokir Dewasa & Judi", CallbackData: "cb:svc_adult"},
-			},
-			{
-				{Text: "🔙 Kembali ke Menu Utama", CallbackData: "cb:menu"},
-			},
-		},
+// BlockedServiceItem defines a single service for Telegram pagination.
+type BlockedServiceItem struct {
+	ID   string
+	Name string
+	Icon string
+}
+
+// DefaultPopularBlockedServices is the global catalog of services in the Telegram bot.
+var DefaultPopularBlockedServices = []BlockedServiceItem{
+	// Page 1: Sosmed & Video Populer
+	{ID: "tiktok", Name: "TikTok", Icon: "📱"},
+	{ID: "youtube", Name: "YouTube", Icon: "📺"},
+	{ID: "instagram", Name: "Instagram", Icon: "📸"},
+	{ID: "facebook", Name: "Facebook", Icon: "📘"},
+	{ID: "twitter", Name: "Twitter / X", Icon: "🐦"},
+	{ID: "telegram", Name: "Telegram", Icon: "💬"},
+	{ID: "whatsapp", Name: "WhatsApp", Icon: "🟢"},
+	{ID: "snapchat", Name: "Snapchat", Icon: "👻"},
+
+	// Page 2: Streaming & Musik
+	{ID: "netflix", Name: "Netflix", Icon: "🎬"},
+	{ID: "spotify", Name: "Spotify", Icon: "🎵"},
+	{ID: "disneyplus", Name: "Disney+", Icon: "🍿"},
+	{ID: "twitch", Name: "Twitch", Icon: "🟣"},
+	{ID: "discord", Name: "Discord", Icon: "👾"},
+	{ID: "reddit", Name: "Reddit", Icon: "🤖"},
+	{ID: "pinterest", Name: "Pinterest", Icon: "📌"},
+	{ID: "threads", Name: "Threads", Icon: "🧵"},
+
+	// Page 3: Gaming & Game Store
+	{ID: "roblox", Name: "Roblox", Icon: "🎮"},
+	{ID: "steam", Name: "Steam", Icon: "🎮"},
+	{ID: "epic_games", Name: "Epic Games", Icon: "🎮"},
+	{ID: "riot_games", Name: "Riot Games", Icon: "🎮"},
+	{ID: "blizzard", Name: "Battle.net", Icon: "🎮"},
+	{ID: "pubg", Name: "PUBG", Icon: "🔫"},
+	{ID: "9gag", Name: "9GAG", Icon: "🤣"},
+	{ID: "4chan", Name: "4chan", Icon: "🍀"},
+
+	// Page 4: Belanja, Dating & Dewasa
+	{ID: "pornhub", Name: "Pornhub", Icon: "🔞"},
+	{ID: "onlyfans", Name: "OnlyFans", Icon: "🔞"},
+	{ID: "tinder", Name: "Tinder", Icon: "🔥"},
+	{ID: "badoo", Name: "Badoo", Icon: "💜"},
+	{ID: "shopee", Name: "Shopee", Icon: "🛍️"},
+	{ID: "lazada", Name: "Lazada", Icon: "📦"},
+	{ID: "amazon", Name: "Amazon", Icon: "📦"},
+	{ID: "ebay", Name: "eBay", Icon: "🛒"},
+}
+
+// BuildBlockedServicesMenu builds the paginated keyboard and message for blocked services.
+func (b *Bot) BuildBlockedServicesMenu(page int) (string, *InlineKeyboardMarkup) {
+	b.mu.RLock()
+	callbacks := b.callbacks
+	b.mu.RUnlock()
+
+	var blockedMap = make(map[string]bool)
+	if callbacks.GetBlockedServicesFunc != nil {
+		for _, id := range callbacks.GetBlockedServicesFunc() {
+			blockedMap[id] = true
+		}
 	}
 
-	return b.sendMessageWithMarkup(chatID, "🚫 *Pusat Blokir Layanan Instan (1-Klik)*\n\nPilih layanan yang ingin diblokir di seluruh jaringan:", inlineMarkup)
+	pageSize := 8
+	totalServices := len(DefaultPopularBlockedServices)
+	totalPages := (totalServices + pageSize - 1) / pageSize
+	if page < 1 {
+		page = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+
+	startIdx := (page - 1) * pageSize
+	endIdx := startIdx + pageSize
+	if endIdx > totalServices {
+		endIdx = totalServices
+	}
+
+	currentItems := DefaultPopularBlockedServices[startIdx:endIdx]
+
+	var keyboard [][]InlineKeyboardButton
+	var currentRow []InlineKeyboardButton
+
+	for _, svc := range currentItems {
+		isBlocked := blockedMap[svc.ID]
+		btnLabel := fmt.Sprintf("🟢 %s %s", svc.Icon, svc.Name)
+		if isBlocked {
+			btnLabel = fmt.Sprintf("🔴 %s %s", svc.Icon, svc.Name)
+		}
+
+		currentRow = append(currentRow, InlineKeyboardButton{
+			Text:         btnLabel,
+			CallbackData: fmt.Sprintf("cb:bsvc_toggle:%s:%d", svc.ID, page),
+		})
+
+		if len(currentRow) == 2 {
+			keyboard = append(keyboard, currentRow)
+			currentRow = []InlineKeyboardButton{}
+		}
+	}
+	if len(currentRow) > 0 {
+		keyboard = append(keyboard, currentRow)
+	}
+
+	// Navigation Row
+	var navRow []InlineKeyboardButton
+	if page > 1 {
+		navRow = append(navRow, InlineKeyboardButton{
+			Text:         fmt.Sprintf("⬅️ Hal %d", page-1),
+			CallbackData: fmt.Sprintf("cb:bsvc_page:%d", page-1),
+		})
+	}
+	navRow = append(navRow, InlineKeyboardButton{
+		Text:         fmt.Sprintf("📄 %d/%d", page, totalPages),
+		CallbackData: fmt.Sprintf("cb:bsvc_refresh:%d", page),
+	})
+	if page < totalPages {
+		navRow = append(navRow, InlineKeyboardButton{
+			Text:         fmt.Sprintf("Hal %d ➡️", page+1),
+			CallbackData: fmt.Sprintf("cb:bsvc_page:%d", page+1),
+		})
+	}
+	keyboard = append(keyboard, navRow)
+
+	// Bottom Row (Back to Main Menu)
+	keyboard = append(keyboard, []InlineKeyboardButton{
+		{Text: "🔙 Kembali ke Menu Utama", CallbackData: "cb:menu"},
+	})
+
+	totalBlocked := len(blockedMap)
+	msg := fmt.Sprintf("🚫 *DAFTAR BLOCKED SERVICES (Hal %d/%d)*\n\n"+
+		"Ketuk tombol layanan untuk *Blokir* (🔴) atau *Izinkan* (🟢) seketika di seluruh jaringan:\n\n"+
+		"• 🔴 = *Sedang DIBLOKIR*\n"+
+		"• 🟢 = *DIIZINKAN (Normal)*\n"+
+		"• *Total Layanan Terblokir:* `%d layanan`",
+		page, totalPages, totalBlocked,
+	)
+
+	return msg, &InlineKeyboardMarkup{InlineKeyboard: keyboard}
+}
+
+// SendServicesMenu sends the interactive paginated blocked services menu.
+func (b *Bot) SendServicesMenu(chatID string) error {
+	msg, markup := b.BuildBlockedServicesMenu(1)
+	return b.sendMessageWithMarkup(chatID, msg, markup)
 }
 
 func (b *Bot) sendMessageWithMarkup(chatID, text string, replyMarkup any) error {
@@ -343,6 +469,48 @@ func (b *Bot) sendMessageWithMarkup(chatID, text string, replyMarkup any) error 
 	b.mu.Lock()
 	b.lastAlert = time.Now().UTC().Format(time.RFC3339)
 	b.mu.Unlock()
+
+	return nil
+}
+
+// EditMessageText updates an existing Telegram message in place.
+func (b *Bot) EditMessageText(chatID int64, messageID int64, text string, replyMarkup any) error {
+	b.mu.RLock()
+	token := b.conf.BotToken
+	b.mu.RUnlock()
+
+	if token == "" || chatID == 0 || messageID == 0 {
+		return errors.New("bot token, chat ID, or message ID is empty")
+	}
+
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/editMessageText", token)
+	payload := map[string]any{
+		"chat_id":    chatID,
+		"message_id": messageID,
+		"text":       text,
+		"parse_mode": "Markdown",
+	}
+
+	if replyMarkup != nil {
+		payload["reply_markup"] = replyMarkup
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := b.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
 
 	return nil
 }
@@ -581,13 +749,19 @@ func (b *Bot) pollLoop() {
 
 			// Handle inline button clicks (Callback Queries)
 			if update.CallbackQuery != nil && update.CallbackQuery.Data != "" {
-				go b.handleCallbackQuery(update.CallbackQuery.ID, update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Data)
+				msgID := int64(0)
+				chatObjID := int64(0)
+				if update.CallbackQuery.Message != nil {
+					msgID = update.CallbackQuery.Message.MessageID
+					chatObjID = update.CallbackQuery.Message.Chat.ID
+				}
+				go b.handleCallbackQuery(update.CallbackQuery.ID, chatObjID, msgID, update.CallbackQuery.Data)
 			}
 		}
 	}
 }
 
-func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, data string) {
+func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, messageID int64, data string) {
 	chatIDStr := strconv.FormatInt(chatID, 10)
 
 	b.mu.RLock()
@@ -597,6 +771,73 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, data string) 
 
 	if adminChatID != "" && adminChatID != chatIDStr {
 		b.answerCallbackQuery(callbackID, "Akses Ditolak!")
+		return
+	}
+
+	// Handle blocked services pagination
+	if strings.HasPrefix(data, "cb:bsvc_page:") {
+		parts := strings.Split(data, ":")
+		page := 1
+		if len(parts) >= 3 {
+			if p, err := strconv.Atoi(parts[2]); err == nil {
+				page = p
+			}
+		}
+		b.answerCallbackQuery(callbackID, fmt.Sprintf("Halaman %d", page))
+		text, markup := b.BuildBlockedServicesMenu(page)
+		if messageID > 0 {
+			_ = b.EditMessageText(chatID, messageID, text, markup)
+		} else {
+			_ = b.sendMessageWithMarkup(chatIDStr, text, markup)
+		}
+		return
+	}
+
+	// Handle blocked services refresh
+	if strings.HasPrefix(data, "cb:bsvc_refresh:") {
+		parts := strings.Split(data, ":")
+		page := 1
+		if len(parts) >= 3 {
+			if p, err := strconv.Atoi(parts[2]); err == nil {
+				page = p
+			}
+		}
+		b.answerCallbackQuery(callbackID, "🔄 Diperbarui")
+		text, markup := b.BuildBlockedServicesMenu(page)
+		if messageID > 0 {
+			_ = b.EditMessageText(chatID, messageID, text, markup)
+		}
+		return
+	}
+
+	// Handle blocked services individual toggle
+	if strings.HasPrefix(data, "cb:bsvc_toggle:") {
+		parts := strings.Split(data, ":")
+		if len(parts) >= 4 {
+			svcID := parts[2]
+			page := 1
+			if p, err := strconv.Atoi(parts[3]); err == nil {
+				page = p
+			}
+
+			if callbacks.ToggleBlockedServiceFunc != nil {
+				blocked, err := callbacks.ToggleBlockedServiceFunc(svcID)
+				if err != nil {
+					b.answerCallbackQuery(callbackID, fmt.Sprintf("❌ Gagal: %s", err.Error()))
+				} else if blocked {
+					b.answerCallbackQuery(callbackID, fmt.Sprintf("🔴 %s BERHASIL DIBLOKIR!", svcID))
+				} else {
+					b.answerCallbackQuery(callbackID, fmt.Sprintf("🟢 %s DIIZINKAN kembali!", svcID))
+				}
+			} else {
+				b.answerCallbackQuery(callbackID, "⚠️ Handler belum siap.")
+			}
+
+			text, markup := b.BuildBlockedServicesMenu(page)
+			if messageID > 0 {
+				_ = b.EditMessageText(chatID, messageID, text, markup)
+			}
+		}
 		return
 	}
 
@@ -655,32 +896,12 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, data string) 
 			_ = b.SendMessage(chatIDStr, "🛡️ Safe Mode diubah.")
 		}
 	case "cb:services_menu":
-		b.answerCallbackQuery(callbackID, "🚫 Menu Blokir Layanan")
-		_ = b.SendServicesMenu(chatIDStr)
-	case "cb:svc_tiktok":
-		b.answerCallbackQuery(callbackID, "Memblokir TikTok...")
-		if callbacks.QuickBlockServiceFunc != nil {
-			_ = b.SendMessage(chatIDStr, callbacks.QuickBlockServiceFunc("tiktok"))
-		}
-	case "cb:svc_youtube":
-		b.answerCallbackQuery(callbackID, "Memblokir YouTube...")
-		if callbacks.QuickBlockServiceFunc != nil {
-			_ = b.SendMessage(chatIDStr, callbacks.QuickBlockServiceFunc("youtube"))
-		}
-	case "cb:svc_meta":
-		b.answerCallbackQuery(callbackID, "Memblokir Instagram/FB...")
-		if callbacks.QuickBlockServiceFunc != nil {
-			_ = b.SendMessage(chatIDStr, callbacks.QuickBlockServiceFunc("meta"))
-		}
-	case "cb:svc_games":
-		b.answerCallbackQuery(callbackID, "Memblokir Game Online...")
-		if callbacks.QuickBlockServiceFunc != nil {
-			_ = b.SendMessage(chatIDStr, callbacks.QuickBlockServiceFunc("games"))
-		}
-	case "cb:svc_adult":
-		b.answerCallbackQuery(callbackID, "Memblokir Dewasa & Judi...")
-		if callbacks.QuickBlockServiceFunc != nil {
-			_ = b.SendMessage(chatIDStr, callbacks.QuickBlockServiceFunc("adult"))
+		b.answerCallbackQuery(callbackID, "🚫 Membuka Blocked Services...")
+		text, markup := b.BuildBlockedServicesMenu(1)
+		if messageID > 0 {
+			_ = b.EditMessageText(chatID, messageID, text, markup)
+		} else {
+			_ = b.sendMessageWithMarkup(chatIDStr, text, markup)
 		}
 	case "cb:lookup_info":
 		b.answerCallbackQuery(callbackID, "🔍 Cek Domain")
