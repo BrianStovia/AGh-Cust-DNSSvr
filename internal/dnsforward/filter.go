@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/AdguardTeam/AdGuardHome/internal/filtering"
+	"github.com/AdguardTeam/AdGuardHome/internal/telebot"
 	"github.com/AdguardTeam/urlfilter/rules"
 	"github.com/miekg/dns"
 )
@@ -58,6 +59,9 @@ func (s *Server) filterDNSRequest(
 		l.DebugContext(ctx, "host is filtered", "reason", res.Reason)
 		pctx.Res = s.genDNSFilterMessage(ctx, l, pctx, res)
 		checkReason = false
+		if res.Reason == filtering.FilteredSafeBrowsing {
+			telebot.GetGlobalBot().SendThreatAlert(host, pctx.Addr.Addr().String(), "SafeBrowsing Phishing/Malware Threat")
+		}
 	} else if dctx.protectionEnabled {
 		if suspicious, reason := isDNSTunneling(host, q.Qtype); suspicious {
 			l.WarnContext(ctx, "blocked suspicious DNS tunneling attempt",
@@ -69,6 +73,7 @@ func (s *Server) filterDNSRequest(
 			res.Reason = filtering.FilteredBlockList
 			pctx.Res = s.genDNSFilterMessage(ctx, l, pctx, res)
 			checkReason = false
+			telebot.GetGlobalBot().SendThreatAlert(host, pctx.Addr.Addr().String(), "Suspicious DNS Tunneling: "+reason)
 		}
 	}
 

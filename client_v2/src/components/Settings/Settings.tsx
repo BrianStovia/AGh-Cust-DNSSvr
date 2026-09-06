@@ -31,6 +31,7 @@ import { UnblockRequests } from '../UnblockRequests';
 import { ODoHConfig } from './ODoHConfig';
 import { DoHHubConfig } from './DoHHubConfig';
 import { AntiRebindConfig } from './AntiRebindConfig';
+import { TelegramBotConfig } from './TelegramBotConfig';
 import {
     getRetentionSummary,
     getSafeSearchProviderTitle,
@@ -178,6 +179,8 @@ export const Settings = () => {
                             <DoHHubConfig />
 
                             <AntiRebindConfig />
+
+                            <TelegramBotConfig />
 
                             <h2
                                 id="filtering"

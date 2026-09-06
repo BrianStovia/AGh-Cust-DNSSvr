@@ -215,6 +215,11 @@ func (web *webAPI) registerControlHandlers() {
 	web.httpReg.Register(http.MethodGet, "/control/rebind/status", web.handleGetRebindStatus)
 	web.httpReg.Register(http.MethodPost, "/control/rebind/config", web.handlePostRebindConfig)
 	web.httpReg.Register(http.MethodPost, "/control/rebind/clear_stats", web.handlePostRebindClearStats)
+	web.httpReg.Register(http.MethodGet, "/control/telegram/status", web.handleGetTelegramStatus)
+	web.httpReg.Register(http.MethodPost, "/control/telegram/config", web.handlePostTelegramConfig)
+	web.httpReg.Register(http.MethodPost, "/control/telegram/test", web.handlePostTelegramTest)
+
+	web.initTelegramCallbacks()
 
 	mobileConfHandler := newMobileConfigHandler(&mobileConfigHandlerConfig{
 		logger: web.baseLogger,
