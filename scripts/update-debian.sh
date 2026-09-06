@@ -40,27 +40,19 @@ if [ -f "$INSTALL_DIR/AdGuardHome.yaml" ]; then
 	echo "${GREEN}[✓] Konfigurasi berhasil dibackup ke $INSTALL_DIR/AdGuardHome.yaml.bak${NC}"
 fi
 
-# 4. Stop Service
-echo "${BLUE}[2/5] Menghentikan service DNS SERVER BRST...${NC}"
-if command -v systemctl >/dev/null 2>&1; then
-	systemctl stop AdGuardHome >/dev/null 2>&1 || true
-else
-	"$INSTALL_DIR/AdGuardHome" -s stop >/dev/null 2>&1 || true
-fi
-
-# 5. Update Binary
-echo "${BLUE}[3/5] Memperbarui biner DNS SERVER BRST...${NC}"
+# 4. Download and Prepare Updated Binary (DNS service remains active during download)
+echo "${BLUE}[2/5] Mengunduh dan memverifikasi biner DNS SERVER BRST terbaru...${NC}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 UPDATED=0
 
 if [ -f "$SCRIPT_DIR/../AdGuardHome" ]; then
-	cp "$SCRIPT_DIR/../AdGuardHome" "$INSTALL_DIR/AdGuardHome"
-	chmod +x "$INSTALL_DIR/AdGuardHome"
+	cp -f "$SCRIPT_DIR/../AdGuardHome" "$INSTALL_DIR/AdGuardHome"
+	chmod 755 "$INSTALL_DIR/AdGuardHome"
 	UPDATED=1
 	echo "${GREEN}[✓] Biner kustom lokal berhasil dipasang.${NC}"
 elif [ -f "./AdGuardHome" ]; then
-	cp "./AdGuardHome" "$INSTALL_DIR/AdGuardHome"
-	chmod +x "$INSTALL_DIR/AdGuardHome"
+	cp -f "./AdGuardHome" "$INSTALL_DIR/AdGuardHome"
+	chmod 755 "$INSTALL_DIR/AdGuardHome"
 	UPDATED=1
 	echo "${GREEN}[✓] Biner kustom lokal berhasil dipasang.${NC}"
 fi
@@ -75,7 +67,7 @@ if [ "$UPDATED" -eq 0 ]; then
 	*) ARCH_TYPE="amd64" ;;
 	esac
 
-	LATEST_COMMIT="$(curl -sSL -H 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/BrianStovia/AGh-Cust-DNSSvr/commits/main 2>/dev/null | grep '"sha":' | head -n 1 | cut -d '"' -f 4 || echo '')"
+	LATEST_COMMIT="$(curl -sSL --connect-timeout 5 -H 'Accept: application/vnd.github.v3+json' https://api.github.com/repos/BrianStovia/AGh-Cust-DNSSvr/commits/main 2>/dev/null | grep '"sha":' | head -n 1 | cut -d '"' -f 4 || echo '')"
 	if [ -z "$LATEST_COMMIT" ]; then
 		LATEST_COMMIT="main"
 	fi
@@ -85,7 +77,7 @@ if [ "$UPDATED" -eq 0 ]; then
 
 	echo "${BLUE}Mengunduh biner AdGuard Home commit [${LATEST_COMMIT}]...${NC}"
 	if command -v curl >/dev/null 2>&1; then
-		curl -sSL -H 'Cache-Control: no-cache' "$DOWNLOAD_URL" -o "$TMP_BIN"
+		curl -sSL --connect-timeout 10 --retry 3 -H 'Cache-Control: no-cache' "$DOWNLOAD_URL" -o "$TMP_BIN"
 	elif command -v wget >/dev/null 2>&1; then
 		wget --no-cache -qO "$TMP_BIN" "$DOWNLOAD_URL"
 	else
