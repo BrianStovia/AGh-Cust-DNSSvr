@@ -1,6 +1,7 @@
 package com.brst.dns.doh
 
 import android.net.VpnService
+import com.brst.dns.data.blocklist.LocalBlocklistManager
 import com.brst.dns.data.model.LocalQueryItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -8,7 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import okhttp3.Dns
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -42,11 +42,15 @@ class DotDnsPacketProcessor(
     private val dotTlsServerName: String,
     private val dohUrl: String,
     private val outStream: FileOutputStream,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val blocklistManager: LocalBlocklistManager = LocalBlocklistManager.getInstance(vpnService)
 ) {
 
     private val _totalQueries = MutableStateFlow(0L)
     val totalQueries: StateFlow<Long> = _totalQueries.asStateFlow()
+
+    private val _blockedQueries = MutableStateFlow(0L)
+    val blockedQueries: StateFlow<Long> = _blockedQueries.asStateFlow()
 
     private val _lastLatencyMs = MutableStateFlow(0L)
     val lastLatencyMs: StateFlow<Long> = _lastLatencyMs.asStateFlow()
@@ -125,6 +129,21 @@ class DotDnsPacketProcessor(
 
         scope.launch(Dispatchers.IO) {
             val startTime = System.currentTimeMillis()
+
+            // --- 1. Check Local On-Device Blocklist ---
+            if (blocklistManager.isBlocked(domain)) {
+                blocklistManager.incrementBlockedCount()
+                _totalQueries.value += 1
+                _blockedQueries.value += 1
+                _lastLatencyMs.value = 0L
+
+                recordBlockedQuery(domain)
+                val blockedResponse = generateBlockedDnsResponse(dnsQueryData)
+                sendDnsResponse(blockedResponse, dstIp, srcIp, dstPort, srcPort)
+                return@launch
+            }
+
+            // --- 2. Forward via DoT or DoH ---
             var dnsResponse: ByteArray? = null
 
             if (protocol.equals("DoT", ignoreCase = true)) {
@@ -235,6 +254,49 @@ class DotDnsPacketProcessor(
         }
     }
 
+    private fun generateBlockedDnsResponse(queryData: ByteArray): ByteArray {
+        val qdCount = if (queryData.size >= 6) {
+            ((queryData[4].toInt() and 0xFF) shl 8) or (queryData[5].toInt() and 0xFF)
+        } else 1
+
+        val out = ByteBuffer.allocate(queryData.size + 16)
+        // 1. Transaction ID
+        if (queryData.size >= 2) {
+            out.put(queryData[0])
+            out.put(queryData[1])
+        } else {
+            out.putShort(0x1234.toShort())
+        }
+        // 2. Flags: 0x8180 (Response, No error)
+        out.put(0x81.toByte())
+        out.put(0x80.toByte())
+        // 3. QDCOUNT
+        out.putShort(qdCount.toShort())
+        // 4. ANCOUNT = 1
+        out.putShort(1.toShort())
+        // 5. NSCOUNT = 0, ARCOUNT = 0
+        out.putShort(0.toShort())
+        out.putShort(0.toShort())
+
+        // 6. Question Section
+        if (queryData.size > 12) {
+            out.put(queryData, 12, queryData.size - 12)
+        }
+
+        // 7. Answer Section (A Record -> 0.0.0.0)
+        out.put(0xC0.toByte()) // Name compression pointer
+        out.put(0x0C.toByte()) // offset 12
+        out.putShort(1.toShort()) // Type A
+        out.putShort(1.toShort()) // Class IN
+        out.putInt(60) // TTL = 60s
+        out.putShort(4.toShort()) // RDLENGTH = 4
+        out.put(byteArrayOf(0, 0, 0, 0)) // 0.0.0.0 Sinkhole
+
+        val result = ByteArray(out.position())
+        System.arraycopy(out.array(), 0, result, 0, result.size)
+        return result
+    }
+
     @Synchronized
     private fun sendDnsResponse(
         dnsResponse: ByteArray,
@@ -302,7 +364,27 @@ class DotDnsPacketProcessor(
             domain = domain,
             latencyMs = latency,
             timestamp = timeStr,
-            protocol = if (protocol.equals("DoT", ignoreCase = true)) "DoT (Port $dotPort)" else "DoH (HTTPS)"
+            protocol = if (protocol.equals("DoT", ignoreCase = true)) "DoT (Port $dotPort)" else "DoH (HTTPS)",
+            status = "ENCRYPTED",
+            success = true,
+            blocked = false
+        )
+        val current = _recentQueries.value.toMutableList()
+        current.add(0, item)
+        if (current.size > 80) current.removeAt(current.lastIndex)
+        _recentQueries.value = current
+    }
+
+    private fun recordBlockedQuery(domain: String) {
+        val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        val item = LocalQueryItem(
+            domain = domain,
+            latencyMs = 0L,
+            timestamp = timeStr,
+            protocol = "Local Shield",
+            status = "BLOCKED",
+            success = true,
+            blocked = true
         )
         val current = _recentQueries.value.toMutableList()
         current.add(0, item)

@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import com.brst.dns.BrstDnsApp
 import com.brst.dns.MainActivity
 import com.brst.dns.R
+import com.brst.dns.data.blocklist.LocalBlocklistManager
 import com.brst.dns.data.model.LocalQueryItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,7 +37,7 @@ class DohVpnService : VpnService() {
             return START_NOT_STICKY
         }
 
-        startForeground(NOTIFICATION_ID, buildNotification("Menghubungkan ke DNS Terenkripsi..."))
+        startForeground(NOTIFICATION_ID, buildNotification("Menghubungkan ke DNS Shield..."))
         startVpn()
         return START_STICKY
     }
@@ -53,7 +54,7 @@ class DohVpnService : VpnService() {
             val dohUrl = prefs.dohUrl.value
 
             val builder = Builder()
-                .setSession("BRST DoT Security Shield")
+                .setSession("BRST DNS Shield (DoT & DoH)")
                 .addAddress("10.255.255.2", 30)
                 .addDnsServer("10.255.255.1")
                 .addRoute("10.255.255.1", 32)
@@ -82,6 +83,9 @@ class DohVpnService : VpnService() {
             val inStream = FileInputStream(vpnInterface!!.fileDescriptor)
             val outStream = FileOutputStream(vpnInterface!!.fileDescriptor)
 
+            val blocklistManager = LocalBlocklistManager.getInstance(this)
+            blocklistManager.reloadRules()
+
             packetProcessor = DotDnsPacketProcessor(
                 vpnService = this,
                 protocol = protocol,
@@ -90,18 +94,30 @@ class DohVpnService : VpnService() {
                 dotTlsServerName = dotTlsName,
                 dohUrl = dohUrl,
                 outStream = outStream,
-                scope = serviceScope
+                scope = serviceScope,
+                blocklistManager = blocklistManager
             )
 
             _isRunning.value = true
             prefs.setVpnActive(true)
 
-            // Listen to queries count & activity
+            // Listen to total queries count & activity
             serviceScope.launch {
                 packetProcessor?.totalQueries?.collect { count ->
                     _queryCount.value = count
-                    val target = if (protocol.equals("DoT", ignoreCase = true)) "$dotHost:$dotPort (DoT)" else dohUrl
-                    updateNotification("Aktif • $count query terenkripsi ($target)")
+                    val blocked = _blockedCount.value
+                    val target = if (protocol.equals("DoT", ignoreCase = true)) "$dotHost:$dotPort (DoT)" else "DoH"
+                    updateNotification("Aktif • $count query ($blocked diblokir) • $target")
+                }
+            }
+
+            // Listen to blocked queries count
+            serviceScope.launch {
+                packetProcessor?.blockedQueries?.collect { blocked ->
+                    _blockedCount.value = blocked
+                    val count = _queryCount.value
+                    val target = if (protocol.equals("DoT", ignoreCase = true)) "$dotHost:$dotPort (DoT)" else "DoH"
+                    updateNotification("Aktif • $count query ($blocked diblokir) • $target")
                 }
             }
 
@@ -172,7 +188,7 @@ class DohVpnService : VpnService() {
 
         return NotificationCompat.Builder(this, BrstDnsApp.CHANNEL_DOH_SERVICE)
             .setSmallIcon(R.drawable.ic_vpn)
-            .setContentTitle("BRST DoT Security Shield")
+            .setContentTitle("BRST DNS Shield")
             .setContentText(text)
             .setContentIntent(pendingOpen)
             .addAction(R.drawable.ic_shield, "Matikan", pendingStop)
@@ -196,6 +212,9 @@ class DohVpnService : VpnService() {
 
         private val _queryCount = MutableStateFlow(0L)
         val queryCount: StateFlow<Long> = _queryCount.asStateFlow()
+
+        private val _blockedCount = MutableStateFlow(0L)
+        val blockedCount: StateFlow<Long> = _blockedCount.asStateFlow()
 
         private val _recentQueriesList = MutableStateFlow<List<LocalQueryItem>>(emptyList())
         val recentQueriesList: StateFlow<List<LocalQueryItem>> = _recentQueriesList.asStateFlow()

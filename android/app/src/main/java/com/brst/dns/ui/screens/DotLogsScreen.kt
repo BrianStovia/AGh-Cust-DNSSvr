@@ -2,16 +2,18 @@ package com.brst.dns.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,8 +30,24 @@ import com.brst.dns.ui.viewmodel.DotViewModel
 fun DotLogsScreen(viewModel: DotViewModel) {
     val queries by viewModel.recentQueries.collectAsState()
     val totalCount by viewModel.queryCount.collectAsState()
+    val blockedCount by viewModel.blockedCount.collectAsState()
     val isRunning by viewModel.isRunning.collectAsState()
     val protocol by viewModel.protocol.collectAsState()
+
+    var searchQuery by remember { mutableStateOf("") }
+    var filterType by remember { mutableStateOf(0) } // 0: All, 1: Blocked, 2: Encrypted
+
+    val filteredQueries = remember(queries, searchQuery, filterType) {
+        queries.filter { item ->
+            val matchesSearch = searchQuery.isBlank() || item.domain.contains(searchQuery, ignoreCase = true)
+            val matchesFilter = when (filterType) {
+                1 -> item.blocked
+                2 -> !item.blocked
+                else -> true
+            }
+            matchesSearch && matchesFilter
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -54,7 +72,7 @@ fun DotLogsScreen(viewModel: DotViewModel) {
                         fontWeight = FontWeight.ExtraBold
                     )
                     Text(
-                        text = "Real-time lalu lintas DNS terenkripsi perangkat",
+                        text = "Real-time lalu lintas DNS & pencegatan iklan",
                         color = BrstTextSecondary,
                         fontSize = 12.sp
                     )
@@ -67,7 +85,7 @@ fun DotLogsScreen(viewModel: DotViewModel) {
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(
-                        text = "$totalCount Query",
+                        text = "$totalCount Total",
                         color = BrstAccent,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
@@ -76,7 +94,7 @@ fun DotLogsScreen(viewModel: DotViewModel) {
             }
         }
 
-        // --- Status Banner ---
+        // --- Status & Blocked Banner ---
         item {
             Card(
                 modifier = Modifier
@@ -106,7 +124,20 @@ fun DotLogsScreen(viewModel: DotViewModel) {
                     Box(modifier = Modifier.width(1.dp).height(24.dp).background(BrstCardBorder))
 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "Terekam di Buffer", color = BrstTextSecondary, fontSize = 11.sp)
+                        Text(text = "Iklan Dicegat", color = BrstTextSecondary, fontSize = 11.sp)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "$blockedCount",
+                            color = BrstPink,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Box(modifier = Modifier.width(1.dp).height(24.dp).background(BrstCardBorder))
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "Buffer Log", color = BrstTextSecondary, fontSize = 11.sp)
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "${queries.size} item",
@@ -119,8 +150,63 @@ fun DotLogsScreen(viewModel: DotViewModel) {
             }
         }
 
+        // --- Search Bar ---
+        item {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Cari domain (misal: google, tiktok, ads)...") },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = BrstTextMuted)
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(imageVector = Icons.Default.Close, contentDescription = "Clear", tint = BrstTextMuted)
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = BrstAccent,
+                    unfocusedBorderColor = BrstCardBorder,
+                    focusedTextColor = BrstTextPrimary,
+                    unfocusedTextColor = BrstTextPrimary,
+                    cursorColor = BrstAccent
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
+        }
+
+        // --- Filter Pills ---
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("Semua", "🚫 Diblokir", "🛡️ Terenkripsi").forEachIndexed { index, label ->
+                    val isSel = filterType == index
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(if (isSel) BrstPrimary else BrstSurfaceVariant)
+                            .clickable { filterType = index }
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = label,
+                            color = if (isSel) BrstTextPrimary else BrstTextSecondary,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+        }
+
         // --- Query List / Empty State ---
-        if (queries.isEmpty()) {
+        if (filteredQueries.isEmpty()) {
             item {
                 Card(
                     modifier = Modifier
@@ -137,31 +223,30 @@ fun DotLogsScreen(viewModel: DotViewModel) {
                         verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ListAlt,
+                            imageVector = Icons.Default.Security,
                             contentDescription = "Empty",
                             tint = BrstTextMuted,
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier.size(44.dp)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Belum Ada Query Tercatat",
+                            text = if (searchQuery.isNotEmpty()) "Domain Tidak Ditemukan" else "Belum Ada Query Tercatat",
                             color = BrstTextPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Aktifkan DoT Shield dan lakukan browsing atau buka aplikasi untuk melihat rekaman query lokal di sini.",
+                            text = if (searchQuery.isNotEmpty()) "Coba kata kunci pencarian domain lainnya." else "Aktifkan Shield dan lakukan browsing atau buka aplikasi untuk melihat log query.",
                             color = BrstTextSecondary,
                             fontSize = 12.sp,
-                            lineHeight = 16.sp,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                     }
                 }
             }
         } else {
-            items(queries, key = { it.id }) { item ->
+            items(filteredQueries, key = { it.id }) { item ->
                 QueryLogCard(item = item)
             }
         }
@@ -173,9 +258,15 @@ private fun QueryLogCard(item: LocalQueryItem) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, BrstCardBorder, RoundedCornerShape(12.dp)),
+            .border(
+                1.dp,
+                if (item.blocked) BrstPink.copy(alpha = 0.4f) else BrstCardBorder,
+                RoundedCornerShape(12.dp)
+            ),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = BrstSurface)
+        colors = CardDefaults.cardColors(
+            containerColor = if (item.blocked) BrstSurfaceVariant.copy(alpha = 0.9f) else BrstSurface
+        )
     ) {
         Row(
             modifier = Modifier
@@ -187,7 +278,7 @@ private fun QueryLogCard(item: LocalQueryItem) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.domain,
-                    color = BrstTextPrimary,
+                    color = if (item.blocked) BrstPink else BrstTextPrimary,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                     fontFamily = FontFamily.Monospace,
@@ -210,7 +301,7 @@ private fun QueryLogCard(item: LocalQueryItem) {
                     )
                     Text(
                         text = item.protocol,
-                        color = BrstAccent,
+                        color = if (item.blocked) BrstPink else BrstAccent,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -219,27 +310,43 @@ private fun QueryLogCard(item: LocalQueryItem) {
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Latency Badge
-            val latencyColor = when {
-                !item.success -> BrstError
-                item.latencyMs < 50 -> BrstSuccess
-                item.latencyMs < 150 -> BrstWarning
-                else -> BrstError
-            }
+            // Badge Status / Latency
+            if (item.blocked) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(BrstPink.copy(alpha = 0.2f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "DIBLOKIR",
+                        color = BrstPink,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+            } else {
+                val latencyColor = when {
+                    !item.success -> BrstError
+                    item.latencyMs < 50 -> BrstSuccess
+                    item.latencyMs < 150 -> BrstWarning
+                    else -> BrstError
+                }
 
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(latencyColor.copy(alpha = 0.15f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = if (item.success) "${item.latencyMs} ms" else "ERR",
-                    color = latencyColor,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(latencyColor.copy(alpha = 0.15f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = if (item.success) "${item.latencyMs} ms" else "ERR",
+                        color = latencyColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
             }
         }
     }

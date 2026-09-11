@@ -1,6 +1,6 @@
-# BRST DNS Shield - Native Android DoT & DoH Client
+# BRST DNS Shield - Native Android DoT & DoH Client with Local AdBlocker
 
-A high-performance, ultra-lightweight Native Android **DNS-over-TLS (DoT RFC 7858)** & **DNS-over-HTTPS (DoH RFC 8484)** encrypted client built with **Kotlin**, **Coroutines**, and **Jetpack Compose / Material 3**.
+A high-performance, ultra-lightweight Native Android **DNS-over-TLS (DoT RFC 7858)** & **DNS-over-HTTPS (DoH RFC 8484)** encrypted client with **On-Device Ad & Tracker Sinkholing**, built with **Kotlin**, **Coroutines**, and **Jetpack Compose / Material 3**.
 
 ---
 
@@ -19,11 +19,19 @@ A high-performance, ultra-lightweight Native Android **DNS-over-TLS (DoT RFC 785
 - **Kustom Client Tagging**: Mendukung format URL kustom server BRST / AdGuard Home Anda, contoh: `https://dns.domainanda.com/dns-query/{nama_hp}`.
 - **Preset DoH Terpercaya**: Cloudflare DoH, Quad9 DoH, AdGuard DoH, Google DoH, Mullvad DoH.
 
-### 3. 🔍 Log Aktivitas Query Lokal Real-Time
-- Pemantauan real-time query DNS yang dikirim dari perangkat.
-- Menampilkan nama domain, timestamp, latensi (ms) dengan indikator warna, protokol yang aktif (DoT / DoH), dan status keberhasilan.
+### 3. 🚫 Local On-Device Ad & Tracker Blocker (Sinkhole 0.0.0.0)
+- **Mesin Sinkhole Lokal**: Mencegat domain iklan dan pelacak secara instan di HP tanpa mengirim query ke jaringan (0 ms response).
+- **Format Filter Fleksibel**: Mendukung daftar AdGuard (`||domain.com^`), file Hosts (`0.0.0.0 domain.com` / `127.0.0.1 domain.com`), dan daftar domain teks biasa.
+- **Preset Filter Populer**: AdGuard DNS Filter, OISD Basic, AdAway Mobile Hosts, HaGeZi Multi PRO Mini.
+- **Editor Aturan Kustom**: Masukkan domain blacklist pribadi langsung di aplikasi.
+- **Hemat Kuota & Baterai**: Mencegah pemuatan banner iklan dan pelacak analitik dari latar belakang.
 
-### 4. 🎛️ Quick Settings Tile Android
+### 4. 🔍 Log Aktivitas Query & Pencarian Real-Time
+- Pemantauan real-time query DNS yang dikirim dari perangkat.
+- Fitur pencarian domain instan dan tab filter: `Semua`, `🚫 Diblokir`, dan `🛡️ Terenkripsi`.
+- Menampilkan nama domain, timestamp, latensi (ms) dengan indikator warna, protokol yang aktif (DoT / DoH), dan status `DIBLOKIR`.
+
+### 5. 🎛️ Quick Settings Tile Android
 - Toggle proteksi instan langsung dari panel *Quick Settings* status bar Android (Tarik bar notifikasi -> Tambah Tile "BRST DoT/DoH").
 
 ---

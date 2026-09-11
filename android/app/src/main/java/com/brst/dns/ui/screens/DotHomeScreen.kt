@@ -16,10 +16,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Http
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,10 +43,13 @@ fun DotHomeScreen(viewModel: DotViewModel) {
     val context = LocalContext.current
     val isRunning by viewModel.isRunning.collectAsState()
     val queryCount by viewModel.queryCount.collectAsState()
+    val blockedCount by viewModel.blockedCount.collectAsState()
     val dotHost by viewModel.dotHost.collectAsState()
     val dotPort by viewModel.dotPort.collectAsState()
     val dohUrl by viewModel.dohUrl.collectAsState()
     val protocol by viewModel.protocol.collectAsState()
+    val isBlocklistEnabled by viewModel.isBlocklistEnabled.collectAsState()
+    val ruleCount by viewModel.blocklistRuleCount.collectAsState()
 
     val isDoT = protocol.equals("DoT", ignoreCase = true)
 
@@ -76,7 +79,7 @@ fun DotHomeScreen(viewModel: DotViewModel) {
             .padding(horizontal = 16.dp),
         contentPadding = PaddingValues(top = 20.dp, bottom = 100.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // --- 1. Header ---
         item {
@@ -88,7 +91,7 @@ fun DotHomeScreen(viewModel: DotViewModel) {
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text = "Enkripsi DNS-over-TLS (DoT) & DNS-over-HTTPS (DoH)",
+                    text = "Enkripsi DoT / DoH + Pemblokir Iklan & Pelacak Lokal",
                     color = BrstTextSecondary,
                     fontSize = 12.sp
                 )
@@ -165,7 +168,7 @@ fun DotHomeScreen(viewModel: DotViewModel) {
             }
         }
 
-        // --- 3. Status Badge & Protocol Selector ---
+        // --- 3. Live Stats & Target Resolver ---
         item {
             Card(
                 modifier = Modifier
@@ -192,7 +195,7 @@ fun DotHomeScreen(viewModel: DotViewModel) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (isRunning) "Status: Aktif via $protocol" else "Status: Nonaktif",
+                                text = if (isRunning) "Status: Aktif ($protocol)" else "Status: Nonaktif",
                                 color = if (isRunning) BrstSuccess else BrstTextSecondary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
@@ -236,30 +239,46 @@ fun DotHomeScreen(viewModel: DotViewModel) {
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(text = "Target Resolver", color = BrstTextSecondary, fontSize = 11.sp)
+                            Text(text = "Total Query", color = BrstTextSecondary, fontSize = 11.sp)
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = if (isDoT) "$dotHost:$dotPort (DoT)" else dohUrl.replace("https://", ""),
-                                color = BrstAccent,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
+                                text = "$queryCount",
+                                color = BrstTextPrimary,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold
                             )
                         }
 
-                        Box(modifier = Modifier.width(1.dp).height(28.dp).background(BrstCardBorder))
+                        Box(modifier = Modifier.width(1.dp).height(32.dp).background(BrstCardBorder))
 
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(text = "Query Terenkripsi", color = BrstTextSecondary, fontSize = 11.sp)
+                            Text(text = "Iklan Diblokir", color = BrstTextSecondary, fontSize = 11.sp)
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "$queryCount",
-                                color = BrstTextPrimary,
-                                fontSize = 14.sp,
+                                text = "$blockedCount",
+                                color = BrstPink,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+
+                        Box(modifier = Modifier.width(1.dp).height(32.dp).background(BrstCardBorder))
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(text = "Target Resolver", color = BrstTextSecondary, fontSize = 11.sp)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (isDoT) "$dotHost:$dotPort" else "DoH HTTPS",
+                                color = BrstAccent,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
                             )
                         }
                     }
@@ -267,7 +286,71 @@ fun DotHomeScreen(viewModel: DotViewModel) {
             }
         }
 
-        // --- 4. Security Highlights ---
+        // --- 4. Local AdBlock Status Card ---
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, BrstCardBorder, RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = BrstSurface)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(BrstPink.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Block,
+                                contentDescription = "AdBlock",
+                                tint = BrstPink,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Pemblokir Iklan Lokal",
+                                color = BrstTextPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = if (isBlocklistEnabled) "$ruleCount aturan aktif (0 ms sinkhole)" else "Nonaktif",
+                                color = if (isBlocklistEnabled) BrstSuccess else BrstTextMuted,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+
+                    Switch(
+                        checked = isBlocklistEnabled,
+                        onCheckedChange = { viewModel.setBlocklistEnabled(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = BrstTextPrimary,
+                            checkedTrackColor = BrstPrimary,
+                            uncheckedThumbColor = BrstTextMuted,
+                            uncheckedTrackColor = BrstSurfaceVariant
+                        )
+                    )
+                }
+            }
+        }
+
+        // --- 5. Security Highlights ---
         item {
             Card(
                 modifier = Modifier
@@ -286,7 +369,7 @@ fun DotHomeScreen(viewModel: DotViewModel) {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (isDoT) "Privasi Kriptografi DoT (TLS 1.3 - Port 853)" else "Privasi Kriptografi DoH (HTTPS/2 - Port 443)",
+                            text = if (isDoT) "DoT Enkripsi TLS 1.3 (Port 853)" else "DoH Enkripsi HTTPS/2 (Port 443)",
                             color = BrstTextPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
@@ -294,11 +377,7 @@ fun DotHomeScreen(viewModel: DotViewModel) {
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = if (isDoT) {
-                            "Mode DoT membungkus paket DNS lokal dalam koneksi TLS terdedikasi port 853 standar RFC 7858. Mencegah manipulasi DNS, spoofing, dan sniffing oleh ISP maupun peretas di WiFi publik."
-                        } else {
-                            "Mode DoH menyamarkan paket DNS dalam permintaan HTTPS port 443 standar RFC 8484. Sangat andal menembus firewall ketat dan jaringan yang memblokir port DNS konvensional."
-                        },
+                        text = "Semua query DNS perangkat Anda dienkripsi secara native tanpa log oleh pihak ketiga. Iklan, pelacak, dan spyware otomatis dicegat di perangkat (sinkhole 0.0.0.0) sehingga menghemat kuota dan baterai.",
                         color = BrstTextSecondary,
                         fontSize = 12.sp,
                         lineHeight = 18.sp
