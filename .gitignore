@@ -14,5 +14,17 @@ Thumbs.db
 
 # Local runtime
 AdGuardHome.yaml
-data/
+/data/
+
+
+# Android build artifacts
+.gradle/
+android/.gradle/
+.idea/
+android/.idea/
+android/build/
+android/app/build/
+*.apk
+*.aab
+
 

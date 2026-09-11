@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">DNS SERVER BRST</string>
+    <string name="doh_tile_label">BRST DoH</string>
+    <string name="doh_service_name">DNS-over-HTTPS Security Shield</string>
+    <string name="doh_notification_title">BRST DoH Shield Aktif</string>
+    <string name="doh_notification_desc">Semua query DNS dienkripsi via DoH RFC 8484</string>
+    <string name="doh_notification_stop">Matikan</string>
+</resources>
