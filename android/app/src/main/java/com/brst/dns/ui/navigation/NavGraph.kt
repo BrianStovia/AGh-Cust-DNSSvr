@@ -32,7 +32,7 @@ fun NavGraph(
             DevicesScreen(viewModel = viewModel)
         }
         composable(Screen.Settings.route) {
-            ServerConfigScreen(viewModel = viewModel)
+            SettingsScreen(viewModel = viewModel)
         }
     }
 }

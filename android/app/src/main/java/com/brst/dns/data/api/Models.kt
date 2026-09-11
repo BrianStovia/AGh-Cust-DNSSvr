@@ -69,6 +69,65 @@ data class RuleDetails(
     @SerializedName("filter_list_id") val filterListId: Long = 0L
 )
 
+// --- DNS General Config (/control/dns_info & /control/dns_config) ---
+data class DnsConfig(
+    @SerializedName("upstream_dns") val upstreamDns: List<String> = listOf("https://dns.quad9.net/dns-query", "tls://1.1.1.1"),
+    @SerializedName("fallback_dns") val fallbackDns: List<String> = emptyList(),
+    @SerializedName("bootstrap_dns") val bootstrapDns: List<String> = listOf("9.9.9.9", "1.1.1.1"),
+    @SerializedName("upstream_mode") val upstreamMode: String = "load_balance",
+    @SerializedName("edns_cs_enabled") val ednsCsEnabled: Boolean = false,
+    @SerializedName("dnssec_enabled") val dnssecEnabled: Boolean = false,
+    @SerializedName("disable_ipv6") val disableIpv6: Boolean = false,
+    @SerializedName("ratelimit") val ratelimit: Int = 20,
+    @SerializedName("cache_size") val cacheSize: Long = 4194304L,
+    @SerializedName("cache_ttl_min") val cacheTtlMin: Long = 0L,
+    @SerializedName("cache_ttl_max") val cacheTtlMax: Long = 0L,
+    @SerializedName("cache_optimistic") val cacheOptimistic: Boolean = false,
+    @SerializedName("blocking_mode") val blockingMode: String = "default"
+)
+
+// --- Filtering Config (/control/filtering/status & /control/filtering/config) ---
+data class FilteringStatus(
+    @SerializedName("enabled") val enabled: Boolean = true,
+    @SerializedName("interval") val interval: Long = 24L,
+    @SerializedName("user_rules") val userRules: List<String> = emptyList()
+)
+
+// --- Protection Toggles ---
+data class BooleanStatus(
+    @SerializedName("enabled") val enabled: Boolean = false
+)
+
+// --- Anti-DNS Rebinding Config (/control/rebind/status & /control/rebind/config) ---
+data class RebindConfig(
+    @SerializedName("enabled") val enabled: Boolean = true,
+    @SerializedName("strict_mode") val strictMode: Boolean = false,
+    @SerializedName("whitelisted_domains") val whitelistedDomains: List<String> = emptyList(),
+    @SerializedName("blocked_count") val blockedCount: Long = 0L
+)
+
+// --- Oblivious DoH (ODoH) Config (/control/odoh/status & /control/odoh/configure) ---
+data class ODoHConfig(
+    @SerializedName("enabled") val enabled: Boolean = false,
+    @SerializedName("preset") val preset: String = "cloudflare",
+    @SerializedName("relay_url") val relayUrl: String = "https://odoh-relay.cloudflare.com/proxy",
+    @SerializedName("target_url") val targetUrl: String = "https://odoh.cloudflare-dns.com/dns-query",
+    @SerializedName("anonymity_score") val anonymityScore: String = ""
+)
+
+// --- Telegram Bot Config (/control/telegram/status & /control/telegram/config) ---
+data class TelegramConfig(
+    @SerializedName("enabled") val enabled: Boolean = false,
+    @SerializedName("token") val token: String = "",
+    @SerializedName("admin_chat_id") val adminChatId: String = "",
+    @SerializedName("status") val status: String = "disconnected"
+)
+
+// --- Blocked Services (/control/blocked_services/list & /control/blocked_services/set) ---
+data class BlockedServicesList(
+    @SerializedName("blocked_services") val blockedServices: List<String> = emptyList()
+)
+
 // --- Smart Game Mode QoS ---
 data class GameModeStatus(
     @SerializedName("enabled") val enabled: Boolean = false,
@@ -111,14 +170,4 @@ data class DohInfoResponse(
     @SerializedName("doq_url") val doqUrl: String = "",
     @SerializedName("tls_active") val tlsActive: Boolean = false,
     @SerializedName("status") val status: String = "ready"
-)
-
-// --- Generic Action Request / Response ---
-data class ProtectionToggleRequest(
-    @SerializedName("enabled") val enabled: Boolean,
-    @SerializedName("duration") val duration: Long = 0L
-)
-
-data class FilteringRulesRequest(
-    @SerializedName("rules") val rules: List<String>
 )

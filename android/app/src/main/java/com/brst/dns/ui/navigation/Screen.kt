@@ -8,7 +8,7 @@ sealed class Screen(val route: String, val title: String, @DrawableRes val iconR
     object DohVpn : Screen("doh_vpn", "DoH Shield", R.drawable.ic_vpn)
     object QueryLog : Screen("query_log", "Query Log", R.drawable.ic_logs)
     object Devices : Screen("devices", "Perangkat", R.drawable.ic_devices)
-    object Settings : Screen("settings", "Server Config", R.drawable.ic_settings)
+    object Settings : Screen("settings", "Pengaturan", R.drawable.ic_settings)
 
     companion object {
         val bottomNavItems = listOf(Dashboard, DohVpn, QueryLog, Devices, Settings)
