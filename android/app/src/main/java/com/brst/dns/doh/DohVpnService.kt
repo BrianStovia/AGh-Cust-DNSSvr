@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import com.brst.dns.BrstDnsApp
 import com.brst.dns.MainActivity
 import com.brst.dns.R
+import com.brst.dns.data.model.LocalQueryItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,7 +27,7 @@ class DohVpnService : VpnService() {
     private var vpnInterface: ParcelFileDescriptor? = null
     private val serviceJob = Job()
     private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
-    private var packetProcessor: DohDnsPacketProcessor? = null
+    private var packetProcessor: DotDnsPacketProcessor? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action
@@ -35,7 +36,7 @@ class DohVpnService : VpnService() {
             return START_NOT_STICKY
         }
 
-        startForeground(NOTIFICATION_ID, buildNotification("Menghubungkan ke DoH..."))
+        startForeground(NOTIFICATION_ID, buildNotification("Menghubungkan ke DNS Terenkripsi..."))
         startVpn()
         return START_STICKY
     }
@@ -45,10 +46,14 @@ class DohVpnService : VpnService() {
 
         try {
             val prefs = BrstDnsApp.instance.preferences
-            val dohEndpoint = prefs.getEffectiveDohEndpoint()
+            val protocol = prefs.protocol.value
+            val dotHost = prefs.dotHost.value
+            val dotPort = prefs.dotPort.value
+            val dotTlsName = prefs.dotTlsServerName.value
+            val dohUrl = prefs.dohUrl.value
 
             val builder = Builder()
-                .setSession("BRST DoH Security Shield")
+                .setSession("BRST DoT Security Shield")
                 .addAddress("10.255.255.2", 30)
                 .addDnsServer("10.255.255.1")
                 .addRoute("10.255.255.1", 32)
@@ -61,7 +66,6 @@ class DohVpnService : VpnService() {
                 .setMtu(1500)
                 .setBlocking(true)
 
-            // Disallow this app from VPN routing to completely prevent loopbacks
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 try {
                     builder.addDisallowedApplication(packageName)
@@ -78,16 +82,32 @@ class DohVpnService : VpnService() {
             val inStream = FileInputStream(vpnInterface!!.fileDescriptor)
             val outStream = FileOutputStream(vpnInterface!!.fileDescriptor)
 
-            packetProcessor = DohDnsPacketProcessor(this, dohEndpoint, outStream, serviceScope)
+            packetProcessor = DotDnsPacketProcessor(
+                vpnService = this,
+                protocol = protocol,
+                dotHost = dotHost,
+                dotPort = dotPort,
+                dotTlsServerName = dotTlsName,
+                dohUrl = dohUrl,
+                outStream = outStream,
+                scope = serviceScope
+            )
 
             _isRunning.value = true
-            prefs.setDohVpnActive(true)
+            prefs.setVpnActive(true)
 
-            // Listen to queries count to update notification & state
+            // Listen to queries count & activity
             serviceScope.launch {
                 packetProcessor?.totalQueries?.collect { count ->
                     _queryCount.value = count
-                    updateNotification("Aktif • $count query terenkripsi ($dohEndpoint)")
+                    val target = if (protocol.equals("DoT", ignoreCase = true)) "$dotHost:$dotPort (DoT)" else dohUrl
+                    updateNotification("Aktif • $count query terenkripsi ($target)")
+                }
+            }
+
+            serviceScope.launch {
+                packetProcessor?.recentQueries?.collect { list ->
+                    _recentQueriesList.value = list
                 }
             }
 
@@ -114,7 +134,7 @@ class DohVpnService : VpnService() {
 
     private fun stopVpn() {
         _isRunning.value = false
-        BrstDnsApp.instance.preferences.setDohVpnActive(false)
+        BrstDnsApp.instance.preferences.setVpnActive(false)
         serviceJob.cancel()
 
         try {
@@ -152,10 +172,10 @@ class DohVpnService : VpnService() {
 
         return NotificationCompat.Builder(this, BrstDnsApp.CHANNEL_DOH_SERVICE)
             .setSmallIcon(R.drawable.ic_vpn)
-            .setContentTitle(getString(R.string.doh_notification_title))
+            .setContentTitle("BRST DoT Security Shield")
             .setContentText(text)
             .setContentIntent(pendingOpen)
-            .addAction(R.drawable.ic_shield, getString(R.string.doh_notification_stop), pendingStop)
+            .addAction(R.drawable.ic_shield, "Matikan", pendingStop)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
@@ -176,5 +196,8 @@ class DohVpnService : VpnService() {
 
         private val _queryCount = MutableStateFlow(0L)
         val queryCount: StateFlow<Long> = _queryCount.asStateFlow()
+
+        private val _recentQueriesList = MutableStateFlow<List<LocalQueryItem>>(emptyList())
+        val recentQueriesList: StateFlow<List<LocalQueryItem>> = _recentQueriesList.asStateFlow()
     }
 }

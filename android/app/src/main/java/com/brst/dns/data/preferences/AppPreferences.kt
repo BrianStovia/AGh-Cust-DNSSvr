@@ -10,83 +10,75 @@ class AppPreferences(context: Context) {
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    private val _serverUrl = MutableStateFlow(prefs.getString(KEY_SERVER_URL, "http://192.168.1.1:3000") ?: "")
-    val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
+    // DoT (DNS-over-TLS) Hostname & Port
+    private val _dotHost = MutableStateFlow(prefs.getString(KEY_DOT_HOST, "1.1.1.1") ?: "1.1.1.1")
+    val dotHost: StateFlow<String> = _dotHost.asStateFlow()
 
-    private val _username = MutableStateFlow(prefs.getString(KEY_USERNAME, "admin") ?: "")
-    val username: StateFlow<String> = _username.asStateFlow()
+    private val _dotPort = MutableStateFlow(prefs.getInt(KEY_DOT_PORT, 853))
+    val dotPort: StateFlow<Int> = _dotPort.asStateFlow()
 
-    private val _password = MutableStateFlow(prefs.getString(KEY_PASSWORD, "") ?: "")
-    val password: StateFlow<String> = _password.asStateFlow()
+    private val _dotTlsServerName = MutableStateFlow(prefs.getString(KEY_DOT_TLS_NAME, "one.one.one.one") ?: "one.one.one.one")
+    val dotTlsServerName: StateFlow<String> = _dotTlsServerName.asStateFlow()
 
+    // Active Protocol: "DoT" or "DoH"
+    private val _protocol = MutableStateFlow(prefs.getString(KEY_PROTOCOL, "DoT") ?: "DoT")
+    val protocol: StateFlow<String> = _protocol.asStateFlow()
+
+    // DoH URL (Alternative option)
     private val _dohUrl = MutableStateFlow(
         prefs.getString(KEY_DOH_URL, "https://cloudflare-dns.com/dns-query") ?: "https://cloudflare-dns.com/dns-query"
     )
     val dohUrl: StateFlow<String> = _dohUrl.asStateFlow()
 
-    private val _dohClientId = MutableStateFlow(prefs.getString(KEY_DOH_CLIENT_ID, "Android-Device") ?: "Android-Device")
-    val dohClientId: StateFlow<String> = _dohClientId.asStateFlow()
+    // VPN Active State
+    private val _vpnActive = MutableStateFlow(prefs.getBoolean(KEY_VPN_ACTIVE, false))
+    val vpnActive: StateFlow<Boolean> = _vpnActive.asStateFlow()
 
-    private val _dohVpnActive = MutableStateFlow(prefs.getBoolean(KEY_DOH_VPN_ACTIVE, false))
-    val dohVpnActive: StateFlow<Boolean> = _dohVpnActive.asStateFlow()
-
-    fun saveServerConfig(url: String, user: String, pass: String) {
-        val cleanUrl = cleanUrl(url)
+    fun saveDotConfig(host: String, port: Int, tlsName: String = "") {
+        val cleanHost = host.trim()
+        val cleanName = if (tlsName.isNotBlank()) tlsName.trim() else cleanHost
 
         prefs.edit()
-            .putString(KEY_SERVER_URL, cleanUrl)
-            .putString(KEY_USERNAME, user.trim())
-            .putString(KEY_PASSWORD, pass)
+            .putString(KEY_DOT_HOST, cleanHost)
+            .putInt(KEY_DOT_PORT, port)
+            .putString(KEY_DOT_TLS_NAME, cleanName)
+            .putString(KEY_PROTOCOL, "DoT")
             .apply()
 
-        _serverUrl.value = cleanUrl
-        _username.value = user.trim()
-        _password.value = pass
+        _dotHost.value = cleanHost
+        _dotPort.value = port
+        _dotTlsServerName.value = cleanName
+        _protocol.value = "DoT"
     }
 
-    fun saveDohConfig(url: String, clientId: String) {
+    fun saveDohConfig(url: String) {
         val cleanUrl = url.trim()
-        val cleanClient = clientId.trim()
-
         prefs.edit()
             .putString(KEY_DOH_URL, cleanUrl)
-            .putString(KEY_DOH_CLIENT_ID, cleanClient)
+            .putString(KEY_PROTOCOL, "DoH")
             .apply()
 
         _dohUrl.value = cleanUrl
-        _dohClientId.value = cleanClient
+        _protocol.value = "DoH"
     }
 
-    fun setDohVpnActive(active: Boolean) {
-        prefs.edit().putBoolean(KEY_DOH_VPN_ACTIVE, active).apply()
-        _dohVpnActive.value = active
+    fun setProtocol(proto: String) {
+        prefs.edit().putString(KEY_PROTOCOL, proto).apply()
+        _protocol.value = proto
     }
 
-    fun getEffectiveDohEndpoint(): String {
-        val base = _dohUrl.value.trimEnd('/')
-        val client = _dohClientId.value.trim()
-        return if (client.isNotEmpty() && base.endsWith("/dns-query")) {
-            "$base/$client"
-        } else {
-            base
-        }
-    }
-
-    private fun cleanUrl(url: String): String {
-        return if (!url.startsWith("http://") && !url.startsWith("https://")) {
-            "http://$url"
-        } else {
-            url
-        }.trimEnd('/')
+    fun setVpnActive(active: Boolean) {
+        prefs.edit().putBoolean(KEY_VPN_ACTIVE, active).apply()
+        _vpnActive.value = active
     }
 
     companion object {
-        private const val PREFS_NAME = "brst_dns_preferences"
-        private const val KEY_SERVER_URL = "server_url"
-        private const val KEY_USERNAME = "username"
-        private const val KEY_PASSWORD = "password"
+        private const val PREFS_NAME = "brst_dot_dns_prefs"
+        private const val KEY_DOT_HOST = "dot_host"
+        private const val KEY_DOT_PORT = "dot_port"
+        private const val KEY_DOT_TLS_NAME = "dot_tls_name"
+        private const val KEY_PROTOCOL = "active_protocol"
         private const val KEY_DOH_URL = "doh_url"
-        private const val KEY_DOH_CLIENT_ID = "doh_client_id"
-        private const val KEY_DOH_VPN_ACTIVE = "doh_vpn_active"
+        private const val KEY_VPN_ACTIVE = "vpn_active"
     }
 }

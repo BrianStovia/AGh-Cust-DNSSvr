@@ -1,56 +1,55 @@
-# DNS SERVER BRST - Android App & DoH Client
+# BRST DoT Shield - Native Android DNS-over-TLS Client
 
-A modern Native Android application built with **Kotlin** and **Jetpack Compose / Material 3** designed for:
-1. **Remote Server Management**: Control and monitor your **DNS SERVER BRST** (AdGuard Home fork) instance.
-2. **Local Android DoH Client (VpnService)**: Encrypt and route all Android DNS queries using DNS-over-HTTPS (RFC 8484) wire format directly to your server.
+A high-performance, ultra-lightweight Native Android DNS-over-TLS (DoT) & DoH client built with **Kotlin**, **Coroutines**, and **Jetpack Compose / Material 3**.
 
 ---
 
 ## ✨ Fitur Aplikasi
 
-### 1. 🛡️ Mode DoH Android (DNS-over-HTTPS Client)
-- **Local TUN VpnService**: Menangkap paket UDP port 53 dari seluruh aplikasi di Android secara transparan.
-- **RFC 8484 Wire-Format HTTP/2**: Mengenkapsulasi query DNS biner menjadi permintaan HTTPS terenkripsi ke endpoint `/dns-query` server BRST Anda.
-- **Client Tagging**: Dukungan format URL `/dns-query/{client_id}` sehingga nama perangkat (misal: `Android-Pixel-Rey`) langsung teridentifikasi rapi di *Query Log* server AdGuard Home.
-- **Quick Settings Tile**: Toggle aktifkan/matikan mode DoH langsung dari *Quick Settings Panel* status bar Android.
-- **Preset Publik**: Pilihan cepat beralih ke preset Cloudflare Anycast, Quad9 Swiss Shield, AdGuard, atau Google DoH.
+### 1. 🛡️ Mode DNS-over-TLS (RFC 7858 - Port 853)
+- **Local TUN VpnService**: Menangkap seluruh paket DNS lokal (UDP port 53) dari semua aplikasi di perangkat Android secara transparan tanpa root.
+- **TLS 1.3 Encryption**: Mengenkapsulasi query DNS lokal dengan framing 2-byte prefix biner RFC 7858 langsung ke port 853 server DoT.
+- **Protected Sockets**: Menggunakan `vpnService.protect(rawSocket)` sebelum handshake TLS untuk mencegah perulangan routing (*routing loops/deadlocks*).
+- **SNI TLS Server Name**: Mendukung Server Name Indication (SNI) kustom untuk validasi sertifikat SSL/TLS.
 
-### 2. ⚡ Server Dashboard & Remote Control
-- **Status & Proteksi**: Saklar instan untuk mengaktifkan atau menjeda proteksi DNS server.
-- **Live Metrics**: Pemantauan jumlah query 24 jam, query diblokir, persentase efektivitas pemblokiran, dan rata-rata latensi upstream.
-- **Smart Game Mode QoS Toggle**: Tombol cepat untuk mengaktifkan mode prioritas rendah-latensi game online.
-- **RAM & DB Auto-Maintenance**: Tombol eksekusi Garbage Collection dan pembersihan cache server dari jarak jauh.
+### 2. ⚡ Presets & Kustom Resolver
+- **DoT Kustom**: Masukkan Host/IP, Port TLS (default 853), dan TLS Hostname resolver pribadi Anda.
+- **Preset Terpercaya**: Pilihan cepat 1-ketuk untuk:
+  - *Cloudflare Anycast DoT* (`1.1.1.1:853` - `one.one.one.one`)
+  - *Quad9 Privacy Shield DoT* (`9.9.9.9:853` - `dns.quad9.net`)
+  - *AdGuard AdBlock DoT* (`94.140.14.14:853` - `dns.adguard-dns.com`)
+  - *Google Public DoT* (`8.8.8.8:853` - `dns.google`)
+  - *Mullvad Privacy DoT* (`194.242.2.3:853` - `adblock.dns.mullvad.net`)
+- **DoH Fallback Switch**: Pilihan protokol fleksibel untuk beralih antara DoT dan DoH (RFC 8484).
 
-### 3. 🔍 Live Query Log & Filter Management
-- Pemantauan riwayat query DNS secara *real-time*.
-- Pencarian dan filter berdasarkan domain atau IP klien.
-- Aksi 1-ketuk untuk **Buka Blokir (Whitelist)** atau **Blokir Domain (Blacklist)** langsung dari ponsel.
+### 3. 🔍 Log Aktivitas Query Lokal
+- Pemantauan real-time query DNS yang dikirim dari perangkat.
+- Menampilkan nama domain, timestamp, latensi (ms), protokol yang digunakan, dan status keberhasilan.
 
-### 4. 📱 Penemuan Perangkat LAN
-- Menampilkan daftar perangkat lokal yang terdeteksi via ARP / DHCP pada server beserta nama vendor MAC dan tipe perangkat.
+### 4. 🎛️ Quick Settings Tile Android
+- Toggle proteksi DoT langsung dari panel *Quick Settings* status bar Android (Tarik bar notifikasi -> Tambah Tile "BRST DoT").
 
 ---
 
-## 🚀 Cara Build & Menjalankan di Android Studio
+## 🚀 Cara Build di Android Studio
 
 ### Prasyarat
-- Android Studio Ladybug / Koala / Hedgehog (atau versi terbaru)
+- Android Studio (Koala / Ladybug / Flamingo / Hedgehog)
 - Android SDK 35 (Android 15) & Min SDK 26 (Android 8.0+)
 - JDK 17 atau 21
 
-### Langkah Build
+### Langkah Menjalankan
 1. Buka folder `android/` di Android Studio:
-   ```sh
+   ```
    File -> Open -> Pilih direktori <repo>/android
    ```
-2. Biarkan Gradle melakukan sinkronisasi dependensi.
-3. Sambungkan perangkat Android fisik (via USB Debugging atau Wireless Debugging) atau jalankan Android Emulator.
-4. Klik **Run 'app'** (`Shift + F10`) untuk memasang dan menjalankan aplikasi di perangkat Anda.
+2. Tunggu Gradle sync selesai.
+3. Hubungkan perangkat Android fisik atau Emulator.
+4. Klik tombol **Run 'app'** (`Shift + F10`).
 
-### Build APK via Terminal (CLI)
-Jika menggunakan Gradle wrapper di terminal:
+### Build APK via CLI
 ```sh
 cd android
 ./gradlew assembleDebug
 ```
-File APK hasil build akan berada di: `android/app/build/outputs/apk/debug/app-debug.apk`.
+Output APK berada di `android/app/build/outputs/apk/debug/app-debug.apk`.

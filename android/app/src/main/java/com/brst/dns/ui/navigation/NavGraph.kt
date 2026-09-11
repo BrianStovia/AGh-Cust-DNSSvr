@@ -5,34 +5,30 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.brst.dns.ui.screens.*
-import com.brst.dns.ui.viewmodel.MainViewModel
+import com.brst.dns.ui.screens.DotConfigScreen
+import com.brst.dns.ui.screens.DotHomeScreen
+import com.brst.dns.ui.screens.DotLogsScreen
+import com.brst.dns.ui.viewmodel.DotViewModel
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    viewModel: MainViewModel,
+    viewModel: DotViewModel,
     modifier: Modifier = Modifier
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Dashboard.route,
+        startDestination = Screen.Home.route,
         modifier = modifier
     ) {
-        composable(Screen.Dashboard.route) {
-            DashboardScreen(viewModel = viewModel)
+        composable(Screen.Home.route) {
+            DotHomeScreen(viewModel = viewModel)
         }
-        composable(Screen.DohVpn.route) {
-            DohVpnScreen(viewModel = viewModel)
+        composable(Screen.Config.route) {
+            DotConfigScreen(viewModel = viewModel)
         }
-        composable(Screen.QueryLog.route) {
-            QueryLogScreen(viewModel = viewModel)
-        }
-        composable(Screen.Devices.route) {
-            DevicesScreen(viewModel = viewModel)
-        }
-        composable(Screen.Settings.route) {
-            SettingsScreen(viewModel = viewModel)
+        composable(Screen.Logs.route) {
+            DotLogsScreen(viewModel = viewModel)
         }
     }
 }

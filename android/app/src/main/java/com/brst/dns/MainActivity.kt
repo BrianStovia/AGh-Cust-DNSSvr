@@ -19,18 +19,16 @@ import com.brst.dns.ui.navigation.NavGraph
 import com.brst.dns.ui.navigation.Screen
 import com.brst.dns.ui.theme.BrstAccent
 import com.brst.dns.ui.theme.BrstBackground
-import com.brst.dns.ui.theme.BrstCardBorder
 import com.brst.dns.ui.theme.BrstDnsTheme
 import com.brst.dns.ui.theme.BrstPrimary
 import com.brst.dns.ui.theme.BrstSurface
 import com.brst.dns.ui.theme.BrstTextMuted
-import com.brst.dns.ui.theme.BrstTextPrimary
-import com.brst.dns.ui.viewmodel.MainViewModel
+import com.brst.dns.ui.viewmodel.DotViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: MainViewModel by viewModels()
+    private val viewModel: DotViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -10,12 +10,9 @@ import com.brst.dns.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.N)
 class DohTileService : TileService() {
-
-    private val scope = CoroutineScope(Dispatchers.Main + Job())
 
     override fun onStartListening() {
         super.onStartListening()
@@ -56,7 +53,7 @@ class DohTileService : TileService() {
     private fun updateTileState(active: Boolean) {
         qsTile?.let { tile ->
             tile.state = if (active) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-            tile.label = if (active) "BRST DoH (ON)" else "BRST DoH (OFF)"
+            tile.label = if (active) "BRST DoT (ON)" else "BRST DoT (OFF)"
             tile.updateTile()
         }
     }
