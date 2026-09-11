@@ -1,26 +1,34 @@
 package com.brst.dns.doh
 
+import android.net.VpnService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import okhttp3.Dns
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.ByteArrayOutputStream
 import java.io.FileOutputStream
+import java.net.DatagramPacket
+import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.Socket
 import java.nio.ByteBuffer
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
+import javax.net.SocketFactory
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
 class DohDnsPacketProcessor(
+    private val vpnService: VpnService,
     private val dohUrl: String,
     private val outStream: FileOutputStream,
     private val scope: CoroutineScope
@@ -40,7 +48,78 @@ class DohDnsPacketProcessor(
         val sslContext = SSLContext.getInstance("TLS")
         sslContext.init(null, trustAllCerts, SecureRandom())
 
+        // Custom protected socket factory to prevent VPN routing loop
+        val protectedSocketFactory = object : SocketFactory() {
+            private val defaultFactory = getDefault()
+
+            override fun createSocket(): Socket {
+                val s = defaultFactory.createSocket()
+                vpnService.protect(s)
+                return s
+            }
+
+            override fun createSocket(host: String?, port: Int): Socket {
+                val s = defaultFactory.createSocket(host, port)
+                vpnService.protect(s)
+                return s
+            }
+
+            override fun createSocket(host: String?, port: Int, localHost: InetAddress?, localPort: Int): Socket {
+                val s = defaultFactory.createSocket(host, port, localHost, localPort)
+                vpnService.protect(s)
+                return s
+            }
+
+            override fun createSocket(host: InetAddress?, port: Int): Socket {
+                val s = defaultFactory.createSocket(host, port)
+                vpnService.protect(s)
+                return s
+            }
+
+            override fun createSocket(address: InetAddress?, port: Int, localAddress: InetAddress?, localPort: Int): Socket {
+                val s = defaultFactory.createSocket(address, port, localAddress, localPort)
+                vpnService.protect(s)
+                return s
+            }
+        }
+
+        // Bootstrap DNS resolver to prevent deadlock when resolving DoH hostname
+        val bootstrapDns = object : Dns {
+            override fun lookup(hostname: String): List<InetAddress> {
+                // If hostname is already an IP address
+                try {
+                    val ip = InetAddress.getByName(hostname)
+                    return listOf(ip)
+                } catch (_: Exception) {}
+
+                // Known bootstrap IPs for popular resolvers
+                when (hostname.lowercase()) {
+                    "cloudflare-dns.com", "one.one.one.one" -> return listOf(
+                        InetAddress.getByName("1.1.1.1"),
+                        InetAddress.getByName("1.0.0.1")
+                    )
+                    "dns.quad9.net" -> return listOf(
+                        InetAddress.getByName("9.9.9.9"),
+                        InetAddress.getByName("149.112.112.112")
+                    )
+                    "dns.google" -> return listOf(
+                        InetAddress.getByName("8.8.8.8"),
+                        InetAddress.getByName("8.8.4.4")
+                    )
+                    "dns.adguard-dns.com" -> return listOf(
+                        InetAddress.getByName("94.140.14.14"),
+                        InetAddress.getByName("94.140.15.15")
+                    )
+                }
+
+                // Fallback: Query Cloudflare directly via protected UDP socket
+                return resolveViaProtectedSocket(hostname)
+            }
+        }
+
         OkHttpClient.Builder()
+            .socketFactory(protectedSocketFactory)
+            .dns(bootstrapDns)
             .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
             .hostnameVerifier { _, _ -> true }
             .connectTimeout(5, TimeUnit.SECONDS)
@@ -74,7 +153,6 @@ class DohDnsPacketProcessor(
         val srcPort = buffer.short.toInt() and 0xFFFF
         val dstPort = buffer.short.toInt() and 0xFFFF
         val udpLength = buffer.short.toInt() and 0xFFFF
-        buffer.short // Skip checksum
 
         if (dstPort != 53 && srcPort != 53) return // Must be DNS port 53
 
@@ -118,8 +196,36 @@ class DohDnsPacketProcessor(
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            // If DoH fails (e.g. timeout or server offline), try fallback resolution to avoid breaking device connectivity
+            fallbackDnsResolution(dnsQuery, dstIp, srcIp, dstPort, srcPort)
         }
+    }
+
+    private fun fallbackDnsResolution(
+        dnsQuery: ByteArray,
+        srcIp: ByteArray,
+        dstIp: ByteArray,
+        srcPort: Int,
+        dstPort: Int
+    ) {
+        try {
+            val socket = DatagramSocket()
+            vpnService.protect(socket)
+            socket.soTimeout = 2000
+
+            val packet = DatagramPacket(dnsQuery, dnsQuery.size, InetAddress.getByName("1.1.1.1"), 53)
+            socket.send(packet)
+
+            val receiveData = ByteArray(4096)
+            val receivePacket = DatagramPacket(receiveData, receiveData.size)
+            socket.receive(receivePacket)
+            socket.close()
+
+            val dnsResponseBytes = ByteArray(receivePacket.length).apply {
+                System.arraycopy(receiveData, 0, this, 0, receivePacket.length)
+            }
+            sendDnsResponse(dnsResponseBytes, srcIp, dstIp, srcPort, dstPort)
+        } catch (_: Exception) {}
     }
 
     @Synchronized
@@ -157,7 +263,7 @@ class DohDnsPacketProcessor(
         responseBuffer.putShort(srcPort.toShort())
         responseBuffer.putShort(dstPort.toShort())
         responseBuffer.putShort((udpHeaderLength + dnsResponse.size).toShort())
-        responseBuffer.putShort(0.toShort()) // UDP Checksum (0 is allowed in IPv4)
+        responseBuffer.putShort(0.toShort()) // UDP Checksum (0 is valid for IPv4)
 
         // 3. DNS Payload
         responseBuffer.put(dnsResponse)
@@ -165,9 +271,97 @@ class DohDnsPacketProcessor(
         try {
             outStream.write(responseBuffer.array(), 0, totalLength)
             outStream.flush()
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (_: Exception) {}
+    }
+
+    private fun resolveViaProtectedSocket(hostname: String): List<InetAddress> {
+        return try {
+            val socket = DatagramSocket()
+            vpnService.protect(socket)
+            socket.soTimeout = 2000
+
+            // Construct minimal standard DNS A-query packet
+            val queryStream = ByteArrayOutputStream()
+            val txId = (System.currentTimeMillis() and 0xFFFF).toInt()
+            queryStream.write(byteArrayOf((txId shr 8).toByte(), txId.toByte())) // ID
+            queryStream.write(byteArrayOf(0x01, 0x00)) // Flags: Standard query, recursion desired
+            queryStream.write(byteArrayOf(0x00, 0x01)) // QDCOUNT = 1
+            queryStream.write(byteArrayOf(0x00, 0x00)) // ANCOUNT = 0
+            queryStream.write(byteArrayOf(0x00, 0x00)) // NSCOUNT = 0
+            queryStream.write(byteArrayOf(0x00, 0x00)) // ARCOUNT = 0
+
+            // QNAME
+            for (label in hostname.split(".")) {
+                queryStream.write(label.length)
+                queryStream.write(label.toByteArray(Charsets.US_ASCII))
+            }
+            queryStream.write(0) // Root null terminator
+            queryStream.write(byteArrayOf(0x00, 0x01)) // QTYPE = A (1)
+            queryStream.write(byteArrayOf(0x00, 0x01)) // QCLASS = IN (1)
+
+            val queryBytes = queryStream.toByteArray()
+            val sendPacket = DatagramPacket(queryBytes, queryBytes.size, InetAddress.getByName("1.1.1.1"), 53)
+            socket.send(sendPacket)
+
+            val buffer = ByteArray(512)
+            val receivePacket = DatagramPacket(buffer, buffer.size)
+            socket.receive(receivePacket)
+            socket.close()
+
+            // Parse response IP
+            parseDnsAnswerIp(buffer, receivePacket.length)
+        } catch (_: Exception) {
+            Dns.SYSTEM.lookup(hostname)
         }
+    }
+
+    private fun parseDnsAnswerIp(data: ByteArray, length: Int): List<InetAddress> {
+        val addresses = mutableListOf<InetAddress>()
+        if (length < 12) return addresses
+
+        val buf = ByteBuffer.wrap(data, 0, length)
+        val anCount = buf.getShort(6).toInt() and 0xFFFF
+        if (anCount == 0) return addresses
+
+        // Skip header (12 bytes) and question section
+        var pos = 12
+        while (pos < length && data[pos].toInt() != 0) {
+            val len = data[pos].toInt() and 0xFF
+            if ((len and 0xC0) == 0xC0) {
+                pos += 2
+                break
+            } else {
+                pos += len + 1
+            }
+        }
+        if (pos < length && data[pos].toInt() == 0) pos++ // Skip null byte
+        pos += 4 // Skip QTYPE and QCLASS
+
+        // Parse Answer records
+        for (i in 0 until anCount) {
+            if (pos >= length) break
+            // Skip Name (pointer or label)
+            if ((data[pos].toInt() and 0xC0) == 0xC0) {
+                pos += 2
+            } else {
+                while (pos < length && data[pos].toInt() != 0) pos++
+                if (pos < length) pos++
+            }
+            if (pos + 10 > length) break
+
+            val type = (data[pos].toInt() and 0xFF shl 8) or (data[pos + 1].toInt() and 0xFF)
+            val rdLength = (data[pos + 8].toInt() and 0xFF shl 8) or (data[pos + 9].toInt() and 0xFF)
+            pos += 10
+
+            if (type == 1 && rdLength == 4 && pos + 4 <= length) { // TYPE A (IPv4)
+                val ipBytes = ByteArray(4)
+                System.arraycopy(data, pos, ipBytes, 0, 4)
+                addresses.add(InetAddress.getByAddress(ipBytes))
+            }
+            pos += rdLength
+        }
+
+        return if (addresses.isNotEmpty()) addresses else listOf(InetAddress.getByName("1.1.1.1"))
     }
 
     private fun computeChecksum(data: ByteArray, offset: Int, length: Int): Int {

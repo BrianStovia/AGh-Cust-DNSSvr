@@ -2,7 +2,6 @@ package home
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -510,66 +509,7 @@ func (mw *authMiddlewareDefault) userFromRequest(
 		return mw.userFromCookie(ctx, cookie.Value)
 	}
 
-	if u, err = mw.userFromAPIKey(ctx, r); u != nil || err != nil {
-		return u, err
-	}
-
 	return mw.userFromRequestBasicAuth(ctx, r)
-}
-
-// userFromAPIKey checks for API Key in X-API-Key header or Bearer/ApiKey token in Authorization header.
-func (mw *authMiddlewareDefault) userFromAPIKey(
-	ctx context.Context,
-	r *http.Request,
-) (u *aghuser.User, err error) {
-	apiKey := r.Header.Get("X-API-Key")
-	if apiKey == "" {
-		apiKey = r.Header.Get("X-Api-Key")
-	}
-	if apiKey == "" {
-		authHdr := r.Header.Get("Authorization")
-		if strings.HasPrefix(authHdr, "Bearer ") {
-			apiKey = strings.TrimPrefix(authHdr, "Bearer ")
-		} else if strings.HasPrefix(authHdr, "ApiKey ") {
-			apiKey = strings.TrimPrefix(authHdr, "ApiKey ")
-		}
-	}
-
-	apiKey = strings.TrimSpace(apiKey)
-	if apiKey == "" {
-		return nil, nil
-	}
-
-	// 1. Try resolving as session token hex
-	if sessUser, sessErr := mw.userFromCookie(ctx, apiKey); sessErr == nil && sessUser != nil {
-		return sessUser, nil
-	}
-
-	// 2. Try resolving as base64-encoded "username:password" or "username:apikey"
-	if dec, decErr := base64.StdEncoding.DecodeString(apiKey); decErr == nil {
-		pair := string(dec)
-		if uName, uPass, hasColon := strings.Cut(pair, ":"); hasColon {
-			if user, _ := mw.users.ByLogin(ctx, aghuser.Login(uName)); user != nil {
-				if user.Password.Authenticate(ctx, uPass) || uPass == apiKey {
-					return user, nil
-				}
-			}
-		}
-	}
-
-	// 3. Try matching apiKey directly against webUser password / hash
-	users, err := mw.users.All(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, user := range users {
-		if user.Password.Authenticate(ctx, apiKey) {
-			return user, nil
-		}
-	}
-
-	return nil, nil
 }
 
 // userFromCookie tries to retrieve a user based on the provided cookie value.

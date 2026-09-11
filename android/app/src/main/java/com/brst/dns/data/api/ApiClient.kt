@@ -16,13 +16,6 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
-data class AuthParams(
-    val authType: String = "api_key",
-    val apiKey: String = "",
-    val username: String = "",
-    val password: String = ""
-)
-
 class ApiClient {
 
     private val gson: Gson = GsonBuilder().setLenient().create()
@@ -53,21 +46,15 @@ class ApiClient {
             .build()
     }
 
-    private fun applyAuth(builder: Request.Builder, auth: AuthParams) {
-        if (auth.authType == "api_key" && auth.apiKey.isNotBlank()) {
-            builder.addHeader("X-API-Key", auth.apiKey.trim())
-            builder.addHeader("Authorization", "Bearer ${auth.apiKey.trim()}")
-        } else if (auth.username.isNotBlank() && auth.password.isNotBlank()) {
-            builder.addHeader("Authorization", Credentials.basic(auth.username, auth.password))
-        }
-    }
-
-    suspend fun <T> get(baseUrl: String, path: String, auth: AuthParams, clazz: Class<T>): Result<T> {
+    suspend fun <T> get(baseUrl: String, path: String, user: String, pass: String, clazz: Class<T>): Result<T> {
         return withContext(Dispatchers.IO) {
             try {
                 val fullUrl = "${baseUrl.trimEnd('/')}/$path"
                 val requestBuilder = Request.Builder().url(fullUrl).get()
-                applyAuth(requestBuilder, auth)
+
+                if (user.isNotBlank() && pass.isNotBlank()) {
+                    requestBuilder.addHeader("Authorization", Credentials.basic(user, pass))
+                }
 
                 val response = okHttpClient.newCall(requestBuilder.build()).execute()
                 val bodyString = response.body?.string()
@@ -84,7 +71,7 @@ class ApiClient {
         }
     }
 
-    suspend fun <T> post(baseUrl: String, path: String, auth: AuthParams, body: Any?, clazz: Class<T>): Result<T> {
+    suspend fun <T> post(baseUrl: String, path: String, user: String, pass: String, body: Any?, clazz: Class<T>): Result<T> {
         return withContext(Dispatchers.IO) {
             try {
                 val fullUrl = "${baseUrl.trimEnd('/')}/$path"
@@ -96,7 +83,10 @@ class ApiClient {
                 }
 
                 val requestBuilder = Request.Builder().url(fullUrl).post(requestBody)
-                applyAuth(requestBuilder, auth)
+
+                if (user.isNotBlank() && pass.isNotBlank()) {
+                    requestBuilder.addHeader("Authorization", Credentials.basic(user, pass))
+                }
 
                 val response = okHttpClient.newCall(requestBuilder.build()).execute()
                 val bodyString = response.body?.string()
@@ -113,7 +103,7 @@ class ApiClient {
         }
     }
 
-    suspend fun postRaw(baseUrl: String, path: String, auth: AuthParams, body: Any?): Result<String> {
+    suspend fun postRaw(baseUrl: String, path: String, user: String, pass: String, body: Any?): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
                 val fullUrl = "${baseUrl.trimEnd('/')}/$path"
@@ -125,7 +115,10 @@ class ApiClient {
                 }
 
                 val requestBuilder = Request.Builder().url(fullUrl).post(requestBody)
-                applyAuth(requestBuilder, auth)
+
+                if (user.isNotBlank() && pass.isNotBlank()) {
+                    requestBuilder.addHeader("Authorization", Credentials.basic(user, pass))
+                }
 
                 val response = okHttpClient.newCall(requestBuilder.build()).execute()
                 val bodyString = response.body?.string() ?: ""

@@ -21,8 +21,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val repository = ServerRepository(api)
 
     val serverUrl: StateFlow<String> = preferences.serverUrl
-    val authType: StateFlow<String> = preferences.authType
-    val apiKey: StateFlow<String> = preferences.apiKey
     val username: StateFlow<String> = preferences.username
     val password: StateFlow<String> = preferences.password
     val dohUrl: StateFlow<String> = preferences.dohUrl
@@ -125,18 +123,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun saveApiKeySettings(url: String, apiKey: String) {
-        preferences.saveApiKeyConfig(url, apiKey)
+    fun saveServerSettings(url: String, user: String, pass: String) {
+        preferences.saveServerConfig(url, user, pass)
         viewModelScope.launch {
-            _uiEvent.emit("Mode API Key disimpan, menghubungkan ke server...")
-            repository.refreshDashboard()
-        }
-    }
-
-    fun saveBasicAuthSettings(url: String, user: String, pass: String) {
-        preferences.saveBasicAuthConfig(url, user, pass)
-        viewModelScope.launch {
-            _uiEvent.emit("Mode Basic Auth disimpan, menghubungkan ke server...")
+            _uiEvent.emit("Pengaturan server berhasil disimpan, menghubungkan...")
             repository.refreshDashboard()
         }
     }

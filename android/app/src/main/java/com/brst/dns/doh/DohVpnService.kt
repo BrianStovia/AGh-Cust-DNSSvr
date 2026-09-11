@@ -49,15 +49,24 @@ class DohVpnService : VpnService() {
 
             val builder = Builder()
                 .setSession("BRST DoH Security Shield")
-                .addAddress("10.0.0.2", 32)
-                .addDnsServer("10.0.0.2")
-                .addRoute("10.0.0.2", 32)
+                .addAddress("10.255.255.2", 30)
+                .addDnsServer("10.255.255.1")
+                .addRoute("10.255.255.1", 32)
+                .addRoute("1.1.1.1", 32)
+                .addRoute("1.0.0.1", 32)
+                .addRoute("8.8.8.8", 32)
+                .addRoute("8.8.4.4", 32)
+                .addRoute("9.9.9.9", 32)
+                .addRoute("94.140.14.14", 32)
                 .setMtu(1500)
                 .setBlocking(true)
 
-            // Disallow the app itself from VPN routing to avoid looping DoH requests
+            // Disallow this app from VPN routing to completely prevent loopbacks
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                builder.addDisallowedApplication(packageName)
+                try {
+                    builder.addDisallowedApplication(packageName)
+                    builder.setMetered(false)
+                } catch (_: Exception) {}
             }
 
             vpnInterface = builder.establish()
@@ -69,7 +78,7 @@ class DohVpnService : VpnService() {
             val inStream = FileInputStream(vpnInterface!!.fileDescriptor)
             val outStream = FileOutputStream(vpnInterface!!.fileDescriptor)
 
-            packetProcessor = DohDnsPacketProcessor(dohEndpoint, outStream, serviceScope)
+            packetProcessor = DohDnsPacketProcessor(this, dohEndpoint, outStream, serviceScope)
 
             _isRunning.value = true
             prefs.setDohVpnActive(true)
@@ -78,7 +87,7 @@ class DohVpnService : VpnService() {
             serviceScope.launch {
                 packetProcessor?.totalQueries?.collect { count ->
                     _queryCount.value = count
-                    updateNotification("Aktif • $count queries terenkripsi ($dohEndpoint)")
+                    updateNotification("Aktif • $count query terenkripsi ($dohEndpoint)")
                 }
             }
 
@@ -91,7 +100,7 @@ class DohVpnService : VpnService() {
                         if (length > 0) {
                             packetProcessor?.processPacket(packet, length)
                         }
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         break
                     }
                 }
@@ -110,9 +119,7 @@ class DohVpnService : VpnService() {
 
         try {
             vpnInterface?.close()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        } catch (_: Exception) {}
         vpnInterface = null
 
         stopForeground(STOP_FOREGROUND_REMOVE)

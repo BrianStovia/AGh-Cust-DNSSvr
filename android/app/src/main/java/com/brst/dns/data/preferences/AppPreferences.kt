@@ -13,12 +13,6 @@ class AppPreferences(context: Context) {
     private val _serverUrl = MutableStateFlow(prefs.getString(KEY_SERVER_URL, "http://192.168.1.1:3000") ?: "")
     val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
 
-    private val _authType = MutableStateFlow(prefs.getString(KEY_AUTH_TYPE, AUTH_TYPE_API_KEY) ?: AUTH_TYPE_API_KEY)
-    val authType: StateFlow<String> = _authType.asStateFlow()
-
-    private val _apiKey = MutableStateFlow(prefs.getString(KEY_API_KEY, "") ?: "")
-    val apiKey: StateFlow<String> = _apiKey.asStateFlow()
-
     private val _username = MutableStateFlow(prefs.getString(KEY_USERNAME, "admin") ?: "")
     val username: StateFlow<String> = _username.asStateFlow()
 
@@ -36,34 +30,17 @@ class AppPreferences(context: Context) {
     private val _dohVpnActive = MutableStateFlow(prefs.getBoolean(KEY_DOH_VPN_ACTIVE, false))
     val dohVpnActive: StateFlow<Boolean> = _dohVpnActive.asStateFlow()
 
-    fun saveApiKeyConfig(url: String, key: String) {
-        val cleanUrl = cleanUrl(url)
-        val cleanKey = key.trim()
-
-        prefs.edit()
-            .putString(KEY_SERVER_URL, cleanUrl)
-            .putString(KEY_AUTH_TYPE, AUTH_TYPE_API_KEY)
-            .putString(KEY_API_KEY, cleanKey)
-            .apply()
-
-        _serverUrl.value = cleanUrl
-        _authType.value = AUTH_TYPE_API_KEY
-        _apiKey.value = cleanKey
-    }
-
-    fun saveBasicAuthConfig(url: String, user: String, pass: String) {
+    fun saveServerConfig(url: String, user: String, pass: String) {
         val cleanUrl = cleanUrl(url)
 
         prefs.edit()
             .putString(KEY_SERVER_URL, cleanUrl)
-            .putString(KEY_AUTH_TYPE, AUTH_TYPE_BASIC)
-            .putString(KEY_USERNAME, user)
+            .putString(KEY_USERNAME, user.trim())
             .putString(KEY_PASSWORD, pass)
             .apply()
 
         _serverUrl.value = cleanUrl
-        _authType.value = AUTH_TYPE_BASIC
-        _username.value = user
+        _username.value = user.trim()
         _password.value = pass
     }
 
@@ -105,12 +82,7 @@ class AppPreferences(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "brst_dns_preferences"
-        const val AUTH_TYPE_API_KEY = "api_key"
-        const val AUTH_TYPE_BASIC = "basic"
-
         private const val KEY_SERVER_URL = "server_url"
-        private const val KEY_AUTH_TYPE = "auth_type"
-        private const val KEY_API_KEY = "api_key"
         private const val KEY_USERNAME = "username"
         private const val KEY_PASSWORD = "password"
         private const val KEY_DOH_URL = "doh_url"
