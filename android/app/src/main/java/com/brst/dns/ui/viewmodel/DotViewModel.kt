@@ -53,7 +53,14 @@ class DotViewModel(application: Application) : AndroidViewModel(application) {
     fun applyPreset(name: String, host: String, port: Int, tlsName: String) {
         preferences.saveDotConfig(host, port, tlsName)
         viewModelScope.launch {
-            _uiEvent.emit("Preset $name berhasil diterapkan!")
+            _uiEvent.emit("Preset DoT $name berhasil diterapkan!")
+        }
+    }
+
+    fun applyDohPreset(name: String, url: String) {
+        preferences.saveDohConfig(url)
+        viewModelScope.launch {
+            _uiEvent.emit("Preset DoH $name berhasil diterapkan!")
         }
     }
 }

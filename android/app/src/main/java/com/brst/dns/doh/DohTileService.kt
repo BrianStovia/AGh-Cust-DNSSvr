@@ -7,9 +7,6 @@ import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import androidx.annotation.RequiresApi
 import com.brst.dns.MainActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 
 @RequiresApi(Build.VERSION_CODES.N)
 class DohTileService : TileService() {
@@ -31,7 +28,6 @@ class DohTileService : TileService() {
         } else {
             val vpnPrepare = VpnService.prepare(this)
             if (vpnPrepare != null) {
-                // Needs VPN permission, open main activity
                 val appIntent = Intent(this, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }
@@ -53,7 +49,7 @@ class DohTileService : TileService() {
     private fun updateTileState(active: Boolean) {
         qsTile?.let { tile ->
             tile.state = if (active) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-            tile.label = if (active) "BRST DoT (ON)" else "BRST DoT (OFF)"
+            tile.label = if (active) "BRST Shield (ON)" else "BRST Shield (OFF)"
             tile.updateTile()
         }
     }

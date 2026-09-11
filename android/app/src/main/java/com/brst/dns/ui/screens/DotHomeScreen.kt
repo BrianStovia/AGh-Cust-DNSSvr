@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Http
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Speed
@@ -44,7 +45,10 @@ fun DotHomeScreen(viewModel: DotViewModel) {
     val queryCount by viewModel.queryCount.collectAsState()
     val dotHost by viewModel.dotHost.collectAsState()
     val dotPort by viewModel.dotPort.collectAsState()
+    val dohUrl by viewModel.dohUrl.collectAsState()
     val protocol by viewModel.protocol.collectAsState()
+
+    val isDoT = protocol.equals("DoT", ignoreCase = true)
 
     val vpnLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -78,13 +82,13 @@ fun DotHomeScreen(viewModel: DotViewModel) {
         item {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "BRST DoT Shield",
+                    text = "BRST DNS Shield",
                     color = BrstTextPrimary,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text = "DNS-over-TLS (RFC 7858) Port 853 Encrypted Tunnel",
+                    text = "Enkripsi DNS-over-TLS (DoT) & DNS-over-HTTPS (DoH)",
                     color = BrstTextSecondary,
                     fontSize = 12.sp
                 )
@@ -145,7 +149,7 @@ fun DotHomeScreen(viewModel: DotViewModel) {
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_shield),
-                            contentDescription = "DoT Toggle",
+                            contentDescription = "Shield Toggle",
                             tint = if (isRunning) BrstBackground else BrstAccent,
                             modifier = Modifier.size(44.dp)
                         )
@@ -188,7 +192,7 @@ fun DotHomeScreen(viewModel: DotViewModel) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (isRunning) "Status: Terenkripsi via $protocol" else "Status: Nonaktif",
+                                text = if (isRunning) "Status: Aktif via $protocol" else "Status: Nonaktif",
                                 color = if (isRunning) BrstSuccess else BrstTextSecondary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
@@ -228,20 +232,27 @@ fun DotHomeScreen(viewModel: DotViewModel) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "Server Resolver", color = BrstTextSecondary, fontSize = 11.sp)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(text = "Target Resolver", color = BrstTextSecondary, fontSize = 11.sp)
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "$dotHost:$dotPort",
+                                text = if (isDoT) "$dotHost:$dotPort (DoT)" else dohUrl.replace("https://", ""),
                                 color = BrstAccent,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
                             )
                         }
 
                         Box(modifier = Modifier.width(1.dp).height(28.dp).background(BrstCardBorder))
 
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text(text = "Query Terenkripsi", color = BrstTextSecondary, fontSize = 11.sp)
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
@@ -268,14 +279,14 @@ fun DotHomeScreen(viewModel: DotViewModel) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = "TLS",
+                            imageVector = if (isDoT) Icons.Default.Lock else Icons.Default.Http,
+                            contentDescription = "Security",
                             tint = BrstAccent,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Privasi Kriptografi TLS 1.3",
+                            text = if (isDoT) "Privasi Kriptografi DoT (TLS 1.3 - Port 853)" else "Privasi Kriptografi DoH (HTTPS/2 - Port 443)",
                             color = BrstTextPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
@@ -283,7 +294,11 @@ fun DotHomeScreen(viewModel: DotViewModel) {
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Semua paket DNS lokal perangkat diarahkan langsung ke port 853 TLS terenkripsi. ISP maupun pihak ketiga di jaringan WiFi tidak dapat mengintip atau memanipulasi situs web yang Anda akses.",
+                        text = if (isDoT) {
+                            "Mode DoT membungkus paket DNS lokal dalam koneksi TLS terdedikasi port 853 standar RFC 7858. Mencegah manipulasi DNS, spoofing, dan sniffing oleh ISP maupun peretas di WiFi publik."
+                        } else {
+                            "Mode DoH menyamarkan paket DNS dalam permintaan HTTPS port 443 standar RFC 8484. Sangat andal menembus firewall ketat dan jaringan yang memblokir port DNS konvensional."
+                        },
                         color = BrstTextSecondary,
                         fontSize = 12.sp,
                         lineHeight = 18.sp
