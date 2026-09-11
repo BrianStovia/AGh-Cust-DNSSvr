@@ -7,5 +7,6 @@ data class LocalQueryItem(
     val protocol: String = "DoT (TLS)",
     val latencyMs: Long,
     val timestamp: String,
-    val status: String = "ENCRYPTED"
+    val status: String = "ENCRYPTED",
+    val success: Boolean = true
 )

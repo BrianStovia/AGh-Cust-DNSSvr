@@ -7,9 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.ListAlt
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,9 +23,6 @@ import androidx.compose.ui.unit.sp
 import com.brst.dns.data.model.LocalQueryItem
 import com.brst.dns.ui.theme.*
 import com.brst.dns.ui.viewmodel.DotViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
 fun DotLogsScreen(viewModel: DotViewModel) {
@@ -35,8 +30,6 @@ fun DotLogsScreen(viewModel: DotViewModel) {
     val totalCount by viewModel.queryCount.collectAsState()
     val isRunning by viewModel.isRunning.collectAsState()
     val protocol by viewModel.protocol.collectAsState()
-
-    val timeFormatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
     LazyColumn(
         modifier = Modifier
@@ -169,14 +162,14 @@ fun DotLogsScreen(viewModel: DotViewModel) {
             }
         } else {
             items(queries, key = { it.id }) { item ->
-                QueryLogCard(item = item, timeFormatter = timeFormatter)
+                QueryLogCard(item = item)
             }
         }
     }
 }
 
 @Composable
-private fun QueryLogCard(item: LocalQueryItem, timeFormatter: SimpleDateFormat) {
+private fun QueryLogCard(item: LocalQueryItem) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -206,7 +199,7 @@ private fun QueryLogCard(item: LocalQueryItem, timeFormatter: SimpleDateFormat) 
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = timeFormatter.format(Date(item.timestamp)),
+                        text = item.timestamp,
                         color = BrstTextMuted,
                         fontSize = 10.sp
                     )
@@ -228,10 +221,10 @@ private fun QueryLogCard(item: LocalQueryItem, timeFormatter: SimpleDateFormat) 
 
             // Latency Badge
             val latencyColor = when {
-                !item.success -> BrstDanger
+                !item.success -> BrstError
                 item.latencyMs < 50 -> BrstSuccess
                 item.latencyMs < 150 -> BrstWarning
-                else -> BrstDanger
+                else -> BrstError
             }
 
             Box(
