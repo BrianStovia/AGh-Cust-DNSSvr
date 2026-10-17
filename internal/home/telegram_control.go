@@ -636,10 +636,12 @@ func (web *webAPI) handlePostTelegramTest(w http.ResponseWriter, r *http.Request
 		AdminChatID: chatID,
 	}, l)
 
-	testMsg := fmt.Sprintf("🚀 *Tes Koneksi Berhasil!*\n\n" +
-		"Bot Telegram AdGuard Home berhasil terhubung ke chat Anda.\n" +
-		"Waktu: `" + time.Now().Format("02 Jan 2006 15:04:05 WIB") + "`\n\n" +
-		"Ketik `/help` untuk melihat daftar perintah.")
+	testMsg := fmt.Sprintf("🚀 *Tes Koneksi Berhasil!*\n\n"+
+		"Bot Telegram AdGuard Home berhasil terhubung ke chat Anda.\n"+
+		"Waktu: `%s`\n\n"+
+		"Ketik `/help` untuk melihat daftar perintah.",
+		time.Now().Format("02 Jan 2006 15:04:05 WIB"),
+	)
 
 	err := testBot.SendMessage(chatID, testMsg)
 	if err != nil {
