@@ -20,13 +20,13 @@ type maintenanceResultJSON struct {
 	Timestamp     string  `json:"timestamp"`
 }
 
-// performMaintenance optimizes memory, flushes stale caches, and compacts runtime resources.
-func performMaintenance(ctx context.Context) (res maintenanceResultJSON) {
+// performMaintenance optimizes memory, optionally flushes stale caches, and compacts runtime resources.
+func performMaintenance(_ context.Context, clearDNSCache bool) (res maintenanceResultJSON) {
 	var mBefore runtime.MemStats
 	runtime.ReadMemStats(&mBefore)
 
-	// 1. Clear in-memory DNS cache if DNS server is running
-	if globalContext.dnsServer != nil {
+	// 1. Clear in-memory DNS cache only on explicit manual request (keep DNS cache hot during periodic GC)
+	if clearDNSCache && globalContext.dnsServer != nil {
 		globalContext.dnsServer.ClearCache()
 	}
 
@@ -61,7 +61,7 @@ func (web *webAPI) startMaintenanceScheduler(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-time.After(15 * time.Second):
-			res := performMaintenance(ctx)
+			res := performMaintenance(ctx, false)
 			web.logger.InfoContext(ctx, "initial post-boot memory cleanup completed",
 				"freed_mb", res.FreedMemoryMB,
 				"alloc_mb", res.AllocatedMB,
@@ -77,7 +77,7 @@ func (web *webAPI) startMaintenanceScheduler(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				res := performMaintenance(ctx)
+				res := performMaintenance(ctx, false)
 				if res.FreedMemoryMB > 5.0 {
 					web.logger.DebugContext(ctx, "periodic auto-maintenance completed",
 						"freed_mb", res.FreedMemoryMB,
@@ -95,7 +95,7 @@ func (web *webAPI) handlePostMaintenanceOptimize(w http.ResponseWriter, r *http.
 	ctx := r.Context()
 	l := web.logger
 
-	res := performMaintenance(ctx)
+	res := performMaintenance(ctx, true)
 	l.InfoContext(ctx, "manual database & memory optimization performed",
 		"freed_mb", res.FreedMemoryMB,
 		"alloc_mb", res.AllocatedMB,

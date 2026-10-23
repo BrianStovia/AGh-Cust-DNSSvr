@@ -21,6 +21,7 @@ import (
 	"github.com/AdguardTeam/AdGuardHome/internal/dnsforward"
 	"github.com/AdguardTeam/AdGuardHome/internal/filtering"
 	"github.com/AdguardTeam/AdGuardHome/internal/filtering/rulelist"
+	"github.com/AdguardTeam/AdGuardHome/internal/gamemode"
 	"github.com/AdguardTeam/AdGuardHome/internal/querylog"
 	"github.com/AdguardTeam/AdGuardHome/internal/schedule"
 	"github.com/AdguardTeam/AdGuardHome/internal/stats"
@@ -166,6 +167,8 @@ type configuration struct {
 	OSConfig *osConfig `yaml:"os"`
 
 	Telegram *telebot.Config `yaml:"telegram,omitempty"`
+	GameMode *gamemode.Config `yaml:"gamemode,omitempty"`
+	Rebind   *dnsforward.RebindConfig `yaml:"rebind,omitempty"`
 
 	sync.RWMutex `yaml:"-"`
 
@@ -742,6 +745,14 @@ func parseConfig(ctx context.Context, l *slog.Logger, workDir, confPath string) 
 		_ = telebot.GetGlobalBot().UpdateConfig(*config.Telegram)
 	}
 
+	if config.GameMode != nil {
+		gamemode.UpdateConfig(*config.GameMode)
+	}
+
+	if config.Rebind != nil {
+		dnsforward.SetRebindConfig(config.Rebind.Enabled, config.Rebind.StrictMode, config.Rebind.WhitelistedDomains)
+	}
+
 	// Do not wrap the error because it's informative enough as is.
 	return validateTLSCipherIDs(config.TLS.OverrideTLSCiphers)
 }
@@ -957,6 +968,12 @@ func (c *configuration) write(
 	if botConf.BotToken != "" || botConf.AdminChatID != "" || botConf.Enabled {
 		config.Telegram = &botConf
 	}
+
+	gmConf := gamemode.GetConfig()
+	config.GameMode = &gmConf
+
+	rebindConf := dnsforward.GetRebindConfig()
+	config.Rebind = &rebindConf
 
 	confPath = configFilePath(ctx, l, workDir, confPath)
 	l.DebugContext(ctx, "writing config file", "path", confPath)

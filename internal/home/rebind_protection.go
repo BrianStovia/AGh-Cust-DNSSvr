@@ -35,6 +35,7 @@ func (web *webAPI) handlePostRebindConfig(w http.ResponseWriter, r *http.Request
 	}
 
 	resp := dnsforward.SetRebindConfig(req.Enabled, req.StrictMode, req.WhitelistedDomains)
+	web.confModifier.Apply(ctx)
 	l.InfoContext(ctx, "configured Anti-DNS Rebinding Shield",
 		"enabled", req.Enabled,
 		"strict_mode", req.StrictMode,

@@ -18,11 +18,11 @@ type RebindEvent struct {
 
 // RebindConfig holds the Anti-DNS Rebinding configuration and state.
 type RebindConfig struct {
-	Enabled            bool          `json:"enabled"`
-	StrictMode         bool          `json:"strict_mode"`
-	WhitelistedDomains []string      `json:"whitelisted_domains"`
-	BlockedCount       uint64        `json:"blocked_count"`
-	RecentAttacks      []RebindEvent `json:"recent_attacks"`
+	Enabled            bool          `json:"enabled" yaml:"enabled"`
+	StrictMode         bool          `json:"strict_mode" yaml:"strict_mode"`
+	WhitelistedDomains []string      `json:"whitelisted_domains" yaml:"whitelisted_domains"`
+	BlockedCount       uint64        `json:"blocked_count" yaml:"-"`
+	RecentAttacks      []RebindEvent `json:"recent_attacks" yaml:"-"`
 }
 
 var (

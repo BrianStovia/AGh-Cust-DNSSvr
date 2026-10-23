@@ -88,7 +88,17 @@ func (web *webAPI) handlePostDoHTest(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if globalContext.dnsServer != nil && globalContext.dnsServer.IsRunning() {
-		resolvedIP = "142.250.190.46 (OK)"
+		ips, lookupErr := net.DefaultResolver.LookupIP(ctx, "ip4", targetDomain)
+		if lookupErr != nil || len(ips) == 0 {
+			ips, lookupErr = net.DefaultResolver.LookupIP(ctx, "ip", targetDomain)
+		}
+		if lookupErr != nil {
+			err = lookupErr
+		} else if len(ips) > 0 {
+			resolvedIP = fmt.Sprintf("%s (OK)", ips[0].String())
+		} else {
+			resolvedIP = "NXDOMAIN (No IP)"
+		}
 	} else {
 		err = fmt.Errorf("DNS server is not running")
 	}

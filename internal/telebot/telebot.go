@@ -48,6 +48,7 @@ type BotCallbacks struct {
 	GetDailyReportFunc          func() string
 	ToggleGameModeFunc          func(mode string) string
 	GetGameModeStatusFunc       func() string
+	GetDetectedDevicesFunc      func() string
 }
 
 // Status represents the runtime status of the bot.
@@ -283,6 +284,7 @@ func (b *Bot) SendInteractiveMenu(chatID, text string) error {
 				{Text: "▶️ Resume Proteksi", CallbackData: "cb:resume"},
 			},
 			{
+				{Text: "📱 Perangkat Aktif", CallbackData: "cb:devices"},
 				{Text: "🏓 Ping Server", CallbackData: "cb:ping"},
 			},
 		},
@@ -845,6 +847,7 @@ func (b *Bot) setMyCommands() error {
 			{"command": "clean", "description": "⚡ Optimasi RAM & One-Click Clean"},
 			{"command": "guide", "description": "📱 Setup Guide / Panduan Pasang DNS"},
 			{"command": "netinfo", "description": "🌐 Info Jaringan, Port & IP Server"},
+			{"command": "devices", "description": "📱 Daftar Perangkat Pintar Terdeteksi"},
 			{"command": "safemode", "description": "🛡️ Toggle SafeSearch & Mode Keluarga"},
 			{"command": "services", "description": "🚫 Menu Blokir Layanan (TikTok, YouTube)"},
 			{"command": "lookup", "description": "🔍 Cek Status Domain (/lookup domain.com)"},
@@ -1354,6 +1357,13 @@ func (b *Bot) handleCallbackQuery(callbackID string, chatID int64, messageID int
 		} else {
 			_ = b.SendMessage(chatIDStr, "🌐 Info server sedang dikumpulkan.")
 		}
+	case "cb:devices":
+		b.answerCallbackQuery(callbackID, "📱 Memuat daftar perangkat...")
+		if callbacks.GetDetectedDevicesFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.GetDetectedDevicesFunc())
+		} else {
+			_ = b.SendMessage(chatIDStr, "📱 Belum ada perangkat pintar terdeteksi.")
+		}
 	case "cb:safemode":
 		b.answerCallbackQuery(callbackID, "🛡️ Mengubah mode proteksi...")
 		if callbacks.ToggleSafeModeFunc != nil {
@@ -1500,6 +1510,13 @@ func (b *Bot) handleIncomingMessage(chatID int64, text string) {
 			_ = b.SendMessage(chatIDStr, callbacks.GetServerInfoFunc())
 		} else {
 			_ = b.SendMessage(chatIDStr, "🌐 Info server sedang dikumpulkan.")
+		}
+
+	case "/devices", "/device", "/perangkat", "📱 perangkat aktif":
+		if callbacks.GetDetectedDevicesFunc != nil {
+			_ = b.SendMessage(chatIDStr, callbacks.GetDetectedDevicesFunc())
+		} else {
+			_ = b.SendMessage(chatIDStr, "📱 Belum ada perangkat pintar terdeteksi.")
 		}
 
 	case "/safemode", "/family", "🛡️ toggle safe mode":

@@ -13,15 +13,18 @@ import (
 	"time"
 
 	"github.com/AdguardTeam/AdGuardHome/internal/aghhttp"
+	"github.com/AdguardTeam/AdGuardHome/internal/devicedetect"
 	"github.com/AdguardTeam/AdGuardHome/internal/gamemode"
 	"github.com/AdguardTeam/AdGuardHome/internal/speedtest"
 	"github.com/AdguardTeam/AdGuardHome/internal/telebot"
 )
 
 var (
-	startTime     = time.Now()
-	safeModeState bool
-	safeModeMu    sync.Mutex
+	startTime       = time.Now()
+	safeModeState   bool
+	safeModeMu      sync.Mutex
+	pauseCancelMu   sync.Mutex
+	pauseCancelFunc context.CancelFunc
 )
 
 // initTelegramCallbacks registers bot callback hooks with AdGuard Home core.
@@ -76,25 +79,51 @@ func (web *webAPI) initTelegramCallbacks() {
 		},
 
 		PauseProtectionFunc: func(minutes int) error {
+			pauseCancelMu.Lock()
+			if pauseCancelFunc != nil {
+				pauseCancelFunc()
+			}
+			pauseCtx, cancel := context.WithCancel(context.Background())
+			pauseCancelFunc = cancel
+			pauseCancelMu.Unlock()
+
 			if globalContext.filters != nil {
 				until := time.Now().Add(time.Duration(minutes) * time.Minute)
 				globalContext.filters.SetProtectionStatus(false, &until)
 			}
 			go func() {
-				time.Sleep(time.Duration(minutes) * time.Minute)
-				if globalContext.filters != nil {
-					globalContext.filters.SetProtectionStatus(true, nil)
-				}
-				bot := telebot.GetGlobalBot()
-				conf := bot.GetConfig()
-				if conf.AdminChatID != "" {
-					_ = bot.SendMessage(conf.AdminChatID, "▶️ *Timer jeda selesai!* Proteksi AdGuard Home otomatis kembali AKTIF.")
+				timer := time.NewTimer(time.Duration(minutes) * time.Minute)
+				defer timer.Stop()
+
+				select {
+				case <-pauseCtx.Done():
+					return
+				case <-timer.C:
+					pauseCancelMu.Lock()
+					pauseCancelFunc = nil
+					pauseCancelMu.Unlock()
+
+					if globalContext.filters != nil {
+						globalContext.filters.SetProtectionStatus(true, nil)
+					}
+					bot := telebot.GetGlobalBot()
+					conf := bot.GetConfig()
+					if conf.AdminChatID != "" {
+						_ = bot.SendMessage(conf.AdminChatID, "▶️ *Timer jeda selesai!* Proteksi AdGuard Home otomatis kembali AKTIF.")
+					}
 				}
 			}()
 			return nil
 		},
 
 		ResumeProtectionFunc: func() error {
+			pauseCancelMu.Lock()
+			if pauseCancelFunc != nil {
+				pauseCancelFunc()
+				pauseCancelFunc = nil
+			}
+			pauseCancelMu.Unlock()
+
 			if globalContext.filters != nil {
 				globalContext.filters.SetProtectionStatus(true, nil)
 			}
@@ -126,11 +155,57 @@ func (web *webAPI) initTelegramCallbacks() {
 			default:
 				gamemode.Toggle()
 			}
+			web.confModifier.Apply(context.Background())
 			return gamemode.FormatTelegramMessage()
 		},
 
 		GetGameModeStatusFunc: func() string {
 			return gamemode.FormatTelegramMessage()
+		},
+
+		GetDetectedDevicesFunc: func() string {
+			devices := devicedetect.GetDetector().GetAllDevices()
+			if len(devices) == 0 {
+				return "📱 *SMART DEVICE AUTO-DISCOVERY*\n\n_Belum ada perangkat yang terdeteksi secara pasif di jaringan saat ini._"
+			}
+
+			var sb strings.Builder
+			sb.WriteString(fmt.Sprintf("📱 *PERANGKAT PINTAR TERDETEKSI (%d Perangkat)* 🔍\n\n", len(devices)))
+
+			maxShow := 15
+			for i, d := range devices {
+				if i >= maxShow {
+					sb.WriteString(fmt.Sprintf("\n_...dan %d perangkat lainnya._", len(devices)-maxShow))
+					break
+				}
+				icon := "💻"
+				switch d.DeviceType {
+				case devicedetect.TypePhone:
+					icon = "📱"
+				case devicedetect.TypeTV:
+					icon = "📺"
+				case devicedetect.TypeGameConsole:
+					icon = "🎮"
+				case devicedetect.TypeIoT:
+					icon = "🏠"
+				case devicedetect.TypeNAS:
+					icon = "💾"
+				case devicedetect.TypeCamera:
+					icon = "📷"
+				case devicedetect.TypePrinter:
+					icon = "🖨️"
+				case devicedetect.TypeAudio:
+					icon = "🔊"
+				}
+
+				targetID := d.IP
+				if d.ClientID != "" {
+					targetID = fmt.Sprintf("%s (%s)", d.ClientID, d.IP)
+				}
+				sb.WriteString(fmt.Sprintf("%s *%s*\n  ├ IP/ID: `%s`\n  ├ OS/Vendor: `%s (%s)`\n  └ Aktivitas: `%d query` (Confidence: `%d%%`)\n\n",
+					icon, d.Model, targetID, d.OS, d.Vendor, d.QueryCount, d.Confidence))
+			}
+			return sb.String()
 		},
 
 		GetDailyReportFunc: func() string {
@@ -384,21 +459,30 @@ func (web *webAPI) initTelegramCallbacks() {
 				"||sbobet^",
 			}
 
+			ctx := context.Background()
 			if enabled {
 				for _, r := range rules {
 					_ = web.addUserRule(r)
 				}
 				if globalContext.filters != nil {
+					globalContext.filters.SetFamilySafeMode(ctx, true)
 					globalContext.filters.EnableFilters(true)
 				}
 				return "🛡️ *Safe Mode & Proteksi Keluarga: AKTIF!* 🟢\n\n" +
-					"• *Filter Dewasa & Judi:* 🟢 Aktif (8 Aturan Global)\n" +
+					"• *Filter Dewasa & Judi:* 🟢 Aktif (8 Aturan Global + Parental Control)\n" +
 					"• *SafeSearch Enforcement:* 🟢 Aktif\n" +
-					"• *Pencarian Aman:* Google, Bing, YouTube, DuckDuckGo\n\n" +
+					"• *Pencarian Aman:* Google, Bing, YouTube, DuckDuckGo, Ecosia\n\n" +
 					"_Seluruh jaringan kini terlindungi dari konten sensitif & judi online._"
 			}
 
+			if globalContext.filters != nil {
+				globalContext.filters.RemoveUserRules(ctx, rules)
+				globalContext.filters.SetFamilySafeMode(ctx, false)
+			}
+
 			return "🛡️ *Safe Mode & Proteksi Keluarga: NONAKTIF!* 🔴\n\n" +
+				"• *Filter Dewasa & Judi Kustom:* 🔴 Dihapus\n" +
+				"• *SafeSearch & Parental Guard:* 🔴 Nonaktif\n\n" +
 				"Proteksi kembali ke mode standar (Hanya memblokir Iklan, Tracker & Malware)."
 		},
 
@@ -493,7 +577,12 @@ func (web *webAPI) initTelegramCallbacks() {
 			var matchReason string
 
 			if globalContext.filters != nil {
-				res, err := globalContext.filters.CheckHost(domain, 1 /* TypeA */, nil)
+				setts := globalContext.filters.Settings()
+				setts.FilteringEnabled = true
+				setts.ProtectionEnabled = true
+				globalContext.filters.ApplyBlockedServices(setts)
+
+				res, err := globalContext.filters.CheckHost(domain, 1 /* TypeA */, setts)
 				if err == nil && res.Reason.Matched() {
 					isBlocked = true
 					matchReason = res.Reason.String()

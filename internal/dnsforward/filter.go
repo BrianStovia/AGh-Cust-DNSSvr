@@ -43,6 +43,7 @@ func (s *Server) filterDNSRequest(
 
 	if gamemode.IsGameDomain(host) {
 		gamemode.RecordGameQuery(host, pctx.Addr.Addr().String())
+		return &filtering.Result{Reason: filtering.NotFilteredAllowList}, nil
 	}
 
 	resVal, err := s.dnsFilter.CheckHost(host, q.Qtype, dctx.setts)

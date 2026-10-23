@@ -54,4 +54,23 @@ func TestGameModeGarenaAndTencent(t *testing.T) {
 
 	msg := FormatTelegramMessage()
 	t.Logf("Formatted Telegram Message:\n%s", msg)
+
+	// Test GetConfig and UpdateConfig persistence
+	UpdateConfig(Config{
+		Enabled:       false,
+		Focus:         "garena",
+		CustomDomains: []string{"customgame.example.com."},
+	})
+	if IsEnabled() {
+		t.Errorf("expected game mode to be disabled after UpdateConfig")
+	}
+	SetEnabled(true)
+	if !IsGameDomain("customgame.example.com") {
+		t.Errorf("expected customgame.example.com to match custom domain")
+	}
+	cfg := GetConfig()
+	if !cfg.Enabled || cfg.Focus != "garena" || len(cfg.CustomDomains) != 1 {
+		t.Errorf("unexpected GetConfig output: %+v", cfg)
+	}
+	SetFocusMode("all")
 }

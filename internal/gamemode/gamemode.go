@@ -297,6 +297,57 @@ func Toggle() bool {
 	return globalEnabled
 }
 
+// GetConfig returns the current Game Mode configuration for disk persistence.
+func GetConfig() Config {
+	globalMu.RLock()
+	enabled := globalEnabled
+	focus := globalFocus
+	globalMu.RUnlock()
+
+	customDomainsMu.RLock()
+	custom := make([]string, 0, len(customDomains))
+	for d := range customDomains {
+		custom = append(custom, d)
+	}
+	customDomainsMu.RUnlock()
+
+	return Config{
+		Enabled:        enabled,
+		Focus:          focus,
+		BypassCosmetic: true,
+		LowLatencyDNS:  true,
+		CustomDomains:  custom,
+	}
+}
+
+// UpdateConfig applies the given Game Mode configuration.
+func UpdateConfig(conf Config) {
+	SetEnabled(conf.Enabled)
+	if conf.Focus != "" {
+		focus := strings.ToLower(strings.TrimSpace(conf.Focus))
+		globalMu.Lock()
+		switch focus {
+		case "garena", "ff", "freefire":
+			globalFocus = "garena"
+		case "tencent", "pubg", "pubgm", "hok":
+			globalFocus = "tencent"
+		default:
+			globalFocus = "all"
+		}
+		globalMu.Unlock()
+	}
+
+	customDomainsMu.Lock()
+	customDomains = make(map[string]bool, len(conf.CustomDomains))
+	for _, d := range conf.CustomDomains {
+		clean := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(d), "."))
+		if clean != "" {
+			customDomains[clean] = true
+		}
+	}
+	customDomainsMu.Unlock()
+}
+
 // IsGameDomain checks whether the given hostname belongs to an active game network based on focus.
 func IsGameDomain(host string) bool {
 	if !IsEnabled() {

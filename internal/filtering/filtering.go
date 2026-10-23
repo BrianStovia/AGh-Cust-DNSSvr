@@ -356,13 +356,69 @@ func (d *DNSFilter) WriteDiskConfig(c *Config) {
 // AddUserRule appends a user custom filtering rule, saves to config, and enables filters.
 func (d *DNSFilter) AddUserRule(ctx context.Context, rule string) {
 	d.conf.filtersMu.Lock()
-	d.conf.UserRules = append(d.conf.UserRules, rule)
+	if !slices.Contains(d.conf.UserRules, rule) {
+		d.conf.UserRules = append(d.conf.UserRules, rule)
+	}
 	d.conf.filtersMu.Unlock()
 
 	if d.conf.ConfModifier != nil {
 		d.conf.ConfModifier.Apply(ctx)
 	}
 	d.EnableFilters(true)
+}
+
+// RemoveUserRules removes specific user rules from custom filtering rules, saves to config, and reloads filters.
+func (d *DNSFilter) RemoveUserRules(ctx context.Context, rulesToRemove []string) {
+	if len(rulesToRemove) == 0 {
+		return
+	}
+
+	removeSet := make(map[string]struct{}, len(rulesToRemove))
+	for _, r := range rulesToRemove {
+		removeSet[r] = struct{}{}
+	}
+
+	d.conf.filtersMu.Lock()
+	filtered := make([]string, 0, len(d.conf.UserRules))
+	for _, existing := range d.conf.UserRules {
+		if _, found := removeSet[existing]; !found {
+			filtered = append(filtered, existing)
+		}
+	}
+	d.conf.UserRules = filtered
+	d.conf.filtersMu.Unlock()
+
+	if d.conf.ConfModifier != nil {
+		d.conf.ConfModifier.Apply(ctx)
+	}
+	d.EnableFilters(true)
+}
+
+// SetFamilySafeMode toggles SafeSearch, Parental Control, and SafeBrowsing atomically.
+func (d *DNSFilter) SetFamilySafeMode(ctx context.Context, enabled bool) {
+	var modifier agh.ConfigModifier
+	var ss SafeSearch
+	var ssConf SafeSearchConfig
+
+	func() {
+		d.confMu.Lock()
+		defer d.confMu.Unlock()
+
+		d.conf.SafeSearchConf.Enabled = enabled
+		d.conf.ParentalEnabled = enabled
+		d.conf.SafeBrowsingEnabled = true
+		ssConf = d.conf.SafeSearchConf
+		ss = d.safeSearch
+		modifier = d.conf.ConfModifier
+	}()
+
+	if ss != nil {
+		_ = ss.Update(ctx, ssConf)
+	}
+
+	if modifier != nil {
+		modifier.Apply(ctx)
+	}
 }
 
 // setFilters sets new filters, synchronously or asynchronously.  When filters
